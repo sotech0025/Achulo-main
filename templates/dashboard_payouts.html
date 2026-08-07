@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+{% block title %}Payouts — {{ app_name }}{% endblock %}
+{% block content %}
+<div class="container mx-auto px-4 md:px-8 max-w-5xl py-10">
+  <h1 class="text-3xl font-serif font-bold mb-8">Payouts</h1>
+
+  <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-8">
+    <div class="bg-card border border-border rounded-xl p-5">
+      <p class="text-sm text-muted-foreground mb-1">Total Released</p>
+      <div class="text-2xl font-bold text-primary">&#8358;{{ "{:,}".format(total_earned) }}</div>
+    </div>
+    <div class="bg-card border border-border rounded-xl p-5">
+      <p class="text-sm text-muted-foreground mb-1">Pending in Escrow</p>
+      <div class="text-2xl font-bold">&#8358;{{ "{:,}".format(pending) }}</div>
+    </div>
+  </div>
+
+  {% if payouts|length == 0 %}
+    <div class="text-center py-16 bg-muted/30 rounded-2xl border border-border">
+      <p class="text-muted-foreground text-sm">No payouts yet. They'll appear here once a tenant pays into escrow for one of your listings.</p>
+    </div>
+  {% else %}
+    <div class="overflow-x-auto bg-card border border-border rounded-xl">
+      <table class="w-full text-sm">
+        <thead class="bg-muted/40 text-left text-muted-foreground">
+          <tr>
+            <th class="px-4 py-3 font-medium">Listing</th>
+            <th class="px-4 py-3 font-medium">Amount</th>
+            <th class="px-4 py-3 font-medium">Status</th>
+            <th class="px-4 py-3 font-medium">Date</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for p in payouts %}
+            <tr class="border-t border-border">
+              <td class="px-4 py-3">{{ p['title'] }}</td>
+              <td class="px-4 py-3 font-medium">&#8358;{{ "{:,}".format(p['amount']) }}</td>
+              <td class="px-4 py-3">
+                <span class="text-xs font-medium px-2 py-0.5 rounded-full {{ 'bg-green-50 text-green-700' if p['status'] == 'released' else 'bg-yellow-50 text-yellow-700' }}">
+                  {{ p['status'] }}
+                </span>
+              </td>
+              <td class="px-4 py-3 text-muted-foreground">{{ p['created_at'][:10] }}</td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  {% endif %}
+</div>
+{% endblock %}

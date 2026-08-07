@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+{% block title %}Identity Verification — {{ app_name }}{% endblock %}
+{% block content %}
+<div class="container mx-auto px-4 md:px-8 max-w-2xl py-10">
+  <h1 class="text-3xl font-serif font-bold mb-8">Identity Verification</h1>
+
+  {% if user['kyc_status'] == 'verified' %}
+    <div class="bg-card border border-border rounded-2xl p-8 text-center">
+      <div class="inline-flex items-center justify-center h-14 w-14 rounded-full bg-green-50 text-green-600 mb-4 text-2xl">✓</div>
+      <h2 class="text-2xl font-bold mb-2">You're Verified!</h2>
+      <p class="text-muted-foreground">Your NIN has been confirmed. You can now publish listings with a verified badge.</p>
+    </div>
+  {% else %}
+    <div class="bg-card border border-border rounded-2xl p-6">
+      <form method="post" class="space-y-5">
+        <div>
+          <label class="text-sm font-medium block mb-1">National Identity Number (NIN)</label>
+          <input type="text" name="nin" maxlength="11" placeholder="Enter 11-digit NIN" required
+                 class="w-full h-11 px-3 rounded-md border border-border focus:outline-none focus:ring-2 focus:ring-primary" />
+        </div>
+        <div>
+          <label class="text-sm font-medium block mb-2">Liveness Verification (Selfie)</label>
+          <div class="border border-dashed border-border rounded-xl p-6 text-center text-muted-foreground">
+            <h3 class="font-medium mb-1">Open Camera</h3>
+            <p class="text-xs">Camera capture isn't wired up in this demo — submitting the NIN alone completes verification here.</p>
+          </div>
+        </div>
+        <button type="submit" class="w-full h-11 rounded-lg bg-primary text-primary-foreground font-medium hover:opacity-90 transition">
+          Submit for Verification
+        </button>
+      </form>
+    </div>
+  {% endif %}
+</div>
+{% endblock %}

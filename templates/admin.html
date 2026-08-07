@@ -1,0 +1,94 @@
+{% extends "base.html" %}
+{% block title %}Admin — {{ app_name }}{% endblock %}
+{% block content %}
+<div class="container mx-auto px-4 md:px-8 max-w-6xl py-10 space-y-12">
+  <div>
+    <h1 class="text-3xl font-serif font-bold mb-6">Admin</h1>
+  </div>
+
+  <div>
+    <h2 class="text-xl font-bold mb-4">Listings ({{ listings|length }})</h2>
+    <div class="overflow-x-auto bg-card border border-border rounded-xl">
+      <table class="w-full text-sm">
+        <thead class="bg-muted/40 text-left text-muted-foreground">
+          <tr>
+            <th class="px-4 py-3 font-medium">Title</th>
+            <th class="px-4 py-3 font-medium">Owner ID</th>
+            <th class="px-4 py-3 font-medium">Status</th>
+            <th class="px-4 py-3 font-medium">Action</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for l in listings %}
+            <tr class="border-t border-border">
+              <td class="px-4 py-3"><a href="{{ url_for('listing_detail', listing_id=l['id']) }}" class="hover:text-primary font-medium">{{ l['title'] }}</a></td>
+              <td class="px-4 py-3 text-muted-foreground">#{{ l['owner_id'] }}</td>
+              <td class="px-4 py-3">
+                <span class="text-xs font-medium px-2 py-0.5 rounded-full {{ 'bg-green-50 text-green-700' if l['status'] == 'active' else 'bg-red-50 text-red-700' }}">
+                  {{ l['status'] }}
+                </span>
+              </td>
+              <td class="px-4 py-3 flex gap-2">
+                <form method="post" action="{{ url_for('admin_update_listing_status', listing_id=l['id']) }}">
+                  <input type="hidden" name="status" value="active" />
+                  <button class="text-xs font-medium text-green-700 hover:underline">Approve</button>
+                </form>
+                <form method="post" action="{{ url_for('admin_update_listing_status', listing_id=l['id']) }}">
+                  <input type="hidden" name="status" value="suspended" />
+                  <button class="text-xs font-medium text-red-700 hover:underline">Suspend</button>
+                </form>
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div>
+    <h2 class="text-xl font-bold mb-4">Users ({{ users|length }})</h2>
+    <div class="overflow-x-auto bg-card border border-border rounded-xl">
+      <table class="w-full text-sm">
+        <thead class="bg-muted/40 text-left text-muted-foreground">
+          <tr>
+            <th class="px-4 py-3 font-medium">Name</th>
+            <th class="px-4 py-3 font-medium">Email</th>
+            <th class="px-4 py-3 font-medium">Role</th>
+            <th class="px-4 py-3 font-medium">KYC</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for u in users %}
+            <tr class="border-t border-border">
+              <td class="px-4 py-3 font-medium">{{ u['name'] }}</td>
+              <td class="px-4 py-3 text-muted-foreground">{{ u['email'] }}</td>
+              <td class="px-4 py-3">{{ u['role'] }}</td>
+              <td class="px-4 py-3">
+                <span class="text-xs font-medium px-2 py-0.5 rounded-full {{ 'bg-green-50 text-green-700' if u['kyc_status'] == 'verified' else 'bg-yellow-50 text-yellow-700' }}">
+                  {{ u['kyc_status'] }}
+                </span>
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div>
+    <h2 class="text-xl font-bold mb-4">Scam Reports ({{ reports|length }})</h2>
+    {% if reports|length == 0 %}
+      <p class="text-sm text-muted-foreground">No reports filed.</p>
+    {% else %}
+      <div class="space-y-3">
+        {% for r in reports %}
+          <div class="bg-card border border-border rounded-xl p-4">
+            <p class="font-medium">{{ r['title'] }} <span class="text-xs text-muted-foreground font-normal">reported by {{ r['reporter_name'] or 'Anonymous' }}</span></p>
+            <p class="text-sm text-muted-foreground mt-1">{{ r['reason'] }} — {{ r['details'] }}</p>
+          </div>
+        {% endfor %}
+      </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}
