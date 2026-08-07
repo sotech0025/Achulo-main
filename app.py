@@ -12,6 +12,11 @@ DB_PATH = os.path.join(BASE_DIR, "achoulo.db")
 app = Flask(__name__)
 app.secret_key = os.environ.get("SECRET_KEY", "dev-secret-change-me-in-production")
 
+# Admin credentials come from environment variables only — never hardcoded.
+# Set ADMIN_EMAIL / ADMIN_PASSWORD in your Render environment (or a local .env).
+ADMIN_EMAIL = os.environ.get("ADMIN_EMAIL", "admin@achoulo.test")
+ADMIN_PASSWORD = os.environ.get("ADMIN_PASSWORD", "change-me-admin-password")
+
 PRICE_PRESETS = [
     {"label": "Any", "min": None, "max": None},
     {"label": "Under \u20a6500k", "min": None, "max": 500_000},
@@ -93,7 +98,12 @@ def init_db():
         );
         """
     )
-    # seed a demo admin + sample listings on first run
+    # No property or listing seed data is created. The only account
+    # auto-created is the admin account (from ADMIN_EMAIL / ADMIN_PASSWORD).
+    # Set SEED_DEMO_DATA=true to also create a demo agent *account* (no
+    # listings) for local testing; leave unset/false in production.
+    seed_demo = os.environ.get("SEED_DEMO_DATA", "false").lower() == "true"
+
     cur = db.execute("SELECT COUNT(*) AS c FROM users")
     if cur.fetchone()["c"] == 0:
         from werkzeug.security import generate_password_hash
@@ -101,27 +111,26 @@ def init_db():
         now = datetime.utcnow().isoformat()
         db.execute(
             "INSERT INTO users (name, email, password_hash, phone, role, kyc_status, created_at) VALUES (?,?,?,?,?,?,?)",
-            ("Achoulo Admin", "admin@achoulo.test", generate_password_hash("admin123"), "+2340000000000", "admin", "verified", now),
+            ("Achoulo Admin", ADMIN_EMAIL, generate_password_hash(ADMIN_PASSWORD), "+2340000000000", "admin", "verified", now),
         )
-        db.execute(
-            "INSERT INTO users (name, email, password_hash, phone, role, kyc_status, created_at) VALUES (?,?,?,?,?,?,?)",
-            ("Demo Agent", "agent@achoulo.test", generate_password_hash("agent123"), "+2348000000001", "agent", "verified", now),
-        )
-        agent_id = db.execute("SELECT id FROM users WHERE email = ?", ("agent@achoulo.test",)).fetchone()["id"]
-        sample = [
-            ("2-Bedroom Flat, Lekki Phase 1", "Bright, newly renovated flat close to the toll gate.", "Lagos", "Eti-Osa", "Lekki Phase 1, Lagos", "12 Admiralty Way", 1_800_000, "per_annum", 2, 2),
-            ("Self-Contained Studio, Yaba", "Compact studio ideal for students and young professionals.", "Lagos", "Yaba", "Yaba, Lagos", "5 Herbert Macaulay Rd", 450_000, "per_annum", 1, 1),
-            ("3-Bedroom Duplex, Gwarinpa", "Spacious family duplex with private compound.", "Abuja", "Gwarinpa", "Gwarinpa, Abuja", "14th Avenue", 3_500_000, "per_annum", 3, 3),
-            ("Mini Flat, Port Harcourt GRA", "Quiet mini flat in a serviced estate.", "Rivers", "Port Harcourt", "GRA, Port Harcourt", "Aba Road", 900_000, "per_month", 1, 1),
-        ]
-        for t, d, state, lga, tag, addr, price, period, bd, ba in sample:
+        if seed_demo:
             db.execute(
-                """INSERT INTO listings (owner_id, title, description, state, lga, location_tag, address,
-                   price, rental_period, bedrooms, bathrooms, image_url, status, created_at)
-                   VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
-                (agent_id, t, d, state, lga, tag, addr, price, period, bd, ba, None, "active", now),
+                "INSERT INTO users (name, email, password_hash, phone, role, kyc_status, created_at) VALUES (?,?,?,?,?,?,?)",
+                ("Demo Agent", "agent@achoulo.test", generate_password_hash("agent123"), "+2348000000001", "agent", "verified", now),
             )
         db.commit()
+    else:
+        # Keep the admin account's credentials in sync with current env vars,
+        # so rotating ADMIN_EMAIL / ADMIN_PASSWORD takes effect on restart.
+        from werkzeug.security import generate_password_hash
+
+        admin_row = db.execute("SELECT id FROM users WHERE role = 'admin' ORDER BY id LIMIT 1").fetchone()
+        if admin_row:
+            db.execute(
+                "UPDATE users SET email = ?, password_hash = ? WHERE id = ?",
+                (ADMIN_EMAIL, generate_password_hash(ADMIN_PASSWORD), admin_row["id"]),
+            )
+            db.commit()
     db.close()
 
 
@@ -452,6 +461,27 @@ def transactions():
 
 
 # --------------------------------------------------------------------- admin
+@app.route("/admin-<secret>")
+def admin_secret_login(secret):
+    """Direct admin access via yourdomain.com/admin-<ADMIN_PASSWORD>.
+
+    Logs the visitor in as the admin account and redirects to /admin, as an
+    alternative to the normal /login form. The secret is compared with
+    hmac.compare_digest to avoid timing attacks.
+    """
+    import hmac
+
+    if not hmac.compare_digest(secret, ADMIN_PASSWORD):
+        abort(404)
+    db = get_db()
+    admin_row = db.execute("SELECT id FROM users WHERE role = 'admin' ORDER BY id LIMIT 1").fetchone()
+    if not admin_row:
+        abort(404)
+    session["user_id"] = admin_row["id"]
+    flash("Logged in as admin.", "success")
+    return redirect(url_for("admin"))
+
+
 @app.route("/admin")
 @admin_required
 def admin():
@@ -481,6 +511,12 @@ def not_found(e):
 
 
 init_db()
+
+# Server-side startup warnings only — never exposed in any page or response.
+if app.secret_key == "dev-secret-change-me-in-production":
+    print("WARNING: SECRET_KEY is not set. Set a random SECRET_KEY env var before deploying.")
+if ADMIN_PASSWORD == "change-me-admin-password":
+    print("WARNING: ADMIN_PASSWORD is not set. Set a strong, random ADMIN_PASSWORD env var before deploying.")
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))

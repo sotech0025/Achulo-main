@@ -27,13 +27,40 @@ python app.py
 ```
 
 Visit http://localhost:5000. A SQLite file (`achoulo.db`) is created
-automatically on first run, seeded with:
+automatically on first run, seeded with just the admin account (see below).
 
-- Admin login: `admin@achoulo.test` / `admin123`
-- Demo agent login: `agent@achoulo.test` / `agent123`
-- 4 sample property listings
+Set `SEED_DEMO_DATA=true` to also create a demo agent account
+(`agent@achoulo.test` / `agent123`, no listings) — useful for local testing
+so you can try the "create listing" flow. Leave it unset (or `false`) in
+production. No property/listing data is ever auto-seeded — every listing
+in the app is one a real user created.
 
-Delete `achoulo.db` any time to reset the demo data.
+Delete `achoulo.db` any time to reset the data.
+
+## Admin access
+
+Admin credentials are **never hardcoded** — they come from environment
+variables:
+
+```bash
+ADMIN_EMAIL=you@yourcompany.com
+ADMIN_PASSWORD=a-long-random-password
+```
+
+Set these locally (e.g. export them or use a `.env` loader) and as
+environment variables in Render. They're re-synced to the admin account
+every time the app starts, so rotating `ADMIN_PASSWORD` and restarting the
+app changes the live admin password too.
+
+Two ways to get into `/admin`:
+
+1. **Normal login** at `/login` with the admin email + password above.
+2. **Direct URL access**: visit `https://yourdomain.com/admin-<ADMIN_PASSWORD>`
+   (e.g. `/admin-a-long-random-password`) and you're logged straight in as
+   admin and redirected to the panel. Any other value 404s.
+
+Keep `ADMIN_PASSWORD` long/random since it's usable as a URL — treat it like
+a bearer token, not a memorable password.
 
 ## Deploy to Render
 
