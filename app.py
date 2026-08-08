@@ -43,6 +43,16 @@ USER_ROLES = {
     'seller': 'Listing Agent',
 }
 
+# ---------------------------------------------------------------- CONTEXT PROCESSOR
+@app.context_processor
+def inject_user():
+    """Inject current user into all templates"""
+    if 'user_id' in session:
+        db = get_db()
+        user = db.execute('SELECT * FROM users WHERE id = ?', (session['user_id'],)).fetchone()
+        return {'current_user': user, 'app_name': APP_NAME, 'price_presets': PRICE_PRESETS}
+    return {'current_user': None, 'app_name': APP_NAME, 'price_presets': PRICE_PRESETS}
+
 # ---------------------------------------------------------------- SECURITY UTILITIES
 def hash_password(password):
     """Hash password with salt"""
@@ -462,12 +472,13 @@ def dashboard():
     
     if session.get('user_role') == 'seller':
         listings = db.execute(
-            'SELECT * FROM listings WHERE owner_id = ? ORDER BY created_at DESC',
+            'SELECT * FROM listings WHERE owner_id = ? ORDER BY created_at DESC LIMIT 5',
             (session['user_id'],)
         ).fetchall()
         return render_template('dashboard_seller.html', user=user, listings=listings)
     else:
-        return render_template('dashboard_buyer.html', user=user)
+        listings = []
+        return render_template('dashboard_buyer.html', user=user, listings=listings)
 
 @app.route('/dashboard/kyc', methods=['GET', 'POST'])
 @login_required
@@ -533,6 +544,7 @@ def dashboard_listings():
         address = sanitize_input(request.form.get('address', ''))
         state = request.form.get('state', '')
         lga = request.form.get('lga', '')
+        location_tag = request.form.get('location_tag', '')
         price = request.form.get('price', '')
         bedrooms = request.form.get('bedrooms', '1')
         bathrooms = request.form.get('bathrooms', '1')
@@ -555,10 +567,10 @@ def dashboard_listings():
         now = datetime.now().isoformat()
         db.execute(
             """INSERT INTO listings 
-            (owner_id, title, description, address, state, lga, price, bedrooms, bathrooms, 
+            (owner_id, title, description, address, state, lga, location_tag, price, bedrooms, bathrooms, 
              rental_period, verification_status, created_at, updated_at)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending_documents', ?, ?)""",
-            (session['user_id'], title, description, address, state, lga, price, bedrooms, 
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending_documents', ?, ?)""",
+            (session['user_id'], title, description, address, state, lga, location_tag, price, bedrooms, 
              bathrooms, rental_period, now, now)
         )
         db.commit()
@@ -574,6 +586,57 @@ def dashboard_listings():
     ).fetchall()
     
     return render_template('dashboard_listings.html', listings=listings)
+
+@app.route('/dashboard/listings/new', methods=['GET', 'POST'])
+@login_required
+@seller_required
+def dashboard_listing_new():
+    """Create a new listing"""
+    db = get_db()
+    
+    if request.method == 'POST':
+        title = sanitize_input(request.form.get('title', ''))
+        description = sanitize_input(request.form.get('description', ''))
+        address = sanitize_input(request.form.get('address', ''))
+        state = request.form.get('state', '')
+        lga = request.form.get('lga', '')
+        location_tag = request.form.get('location_tag', '')
+        price = request.form.get('price', '')
+        bedrooms = request.form.get('bedrooms', '1')
+        bathrooms = request.form.get('bathrooms', '1')
+        rental_period = request.form.get('rental_period', 'per_annum')
+        
+        # Validate input
+        if not all([title, description, address, state, price]):
+            flash('All fields are required.', 'error')
+            return render_template('dashboard_listing_new.html')
+        
+        try:
+            price = int(price)
+            bedrooms = int(bedrooms)
+            bathrooms = int(bathrooms)
+        except ValueError:
+            flash('Invalid price or room numbers.', 'error')
+            return render_template('dashboard_listing_new.html')
+        
+        # Create listing
+        now = datetime.now().isoformat()
+        db.execute(
+            """INSERT INTO listings 
+            (owner_id, title, description, address, state, lga, location_tag, price, bedrooms, bathrooms, 
+             rental_period, verification_status, created_at, updated_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending_documents', ?, ?)""",
+            (session['user_id'], title, description, address, state, lga, location_tag, price, bedrooms, 
+             bathrooms, rental_period, now, now)
+        )
+        db.commit()
+        listing_id = db.lastrowid
+        
+        log_action(session['user_id'], 'listing_created', 'listing', listing_id)
+        flash('Listing created successfully!', 'success')
+        return redirect(url_for('dashboard_listings'))
+    
+    return render_template('dashboard_listing_new.html')
 
 @app.route('/dashboard/listings/<int:listing_id>/upload', methods=['POST'])
 @login_required
@@ -623,13 +686,15 @@ def upload_listing_documents(listing_id):
     return redirect(url_for('dashboard_listings'))
 
 @app.route('/listing/<int:listing_id>')
-def view_listing(listing_id):
+def listing_detail(listing_id):
+    """View a single listing - fixed route name"""
     db = get_db()
     listing = db.execute('SELECT * FROM listings WHERE id = ?', (listing_id,)).fetchone()
-    owner = db.execute('SELECT name, phone FROM users WHERE id = ?', (listing['owner_id'],)).fetchone()
     
-    if not listing or listing['status'] != 'active':
+    if not listing:
         abort(404)
+    
+    owner = db.execute('SELECT name, phone, kyc_status FROM users WHERE id = ?', (listing['owner_id'],)).fetchone()
     
     return render_template('listing.html', listing=listing, owner=owner)
 
@@ -647,7 +712,7 @@ def report_listing(listing_id):
     
     if not reason or not details:
         flash('Please provide reason and details.', 'error')
-        return redirect(url_for('view_listing', listing_id=listing_id))
+        return redirect(url_for('listing_detail', listing_id=listing_id))
     
     db.execute(
         """INSERT INTO reports 
@@ -669,7 +734,7 @@ def report_listing(listing_id):
     log_action(reporter_id, 'listing_reported', 'listing', listing_id)
     flash('Report submitted. Thank you for helping keep our community safe.', 'success')
     
-    return redirect(url_for('view_listing', listing_id=listing_id))
+    return redirect(url_for('listing_detail', listing_id=listing_id))
 
 @app.route('/admin')
 @admin_required
