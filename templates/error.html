@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>{{ code }} - Error</title>
+    <style>
+      body { font-family: system-ui, -apple-system, Roboto, "Segoe UI", Arial; background:#f7f7f9; color:#222; margin:0; padding:0; }
+      .container { max-width:760px; margin:6rem auto; background:white; border-radius:8px; padding:2rem; box-shadow:0 6px 24px rgba(0,0,0,0.08); }
+      h1 { margin:0 0 .5rem; font-size:2rem; }
+      p.lead { color:#555; }
+      .meta { margin-top:1rem; color:#666; font-size:.95rem; }
+      a.btn { display:inline-block; margin-top:1rem; padding:.5rem .9rem; background:#007bff; color:#fff; border-radius:6px; text-decoration:none; }
+    </style>
+  </head>
+  <body>
+    <div class="container" role="main">
+      <h1>Error {{ code }}</h1>
+      <p class="lead">{{ message }}</p>
+      <div class="meta">
+        <p>If you reached this page unexpectedly, try returning to the <a href="{{ url_for('home') }}">home page</a> or contact support.</p>
+      </div>
+      <a class="btn" href="{{ url_for('home') }}">Home</a>
+    </div>
+  </body>
+</html>
