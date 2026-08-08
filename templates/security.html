@@ -1,0 +1,228 @@
+{% extends "base_enhanced.html" %}
+
+{% block title %}Security & Safety - ACHOULO{% endblock %}
+
+{% block content %}
+<div class="container my-5">
+    <div class="row">
+        <div class="col-lg-8 mx-auto">
+            <h1 class="mb-4"><i class="fas fa-lock text-primary"></i> Security & Safety Guidelines</h1>
+            
+            <div class="card border-0 shadow-sm mb-4">
+                <div class="card-body p-4">
+                    
+                    <h3 class="mt-4"><i class="fas fa-server text-primary"></i> Platform Security</h3>
+                    
+                    <div class="row mt-3">
+                        <div class="col-md-6 mb-3">
+                            <div class="p-3 border rounded">
+                                <h5><i class="fas fa-lock text-success"></i> Encryption</h5>
+                                <ul class="small">
+                                    <li>AES-256 data encryption</li>
+                                    <li>TLS 1.3 protocol</li>
+                                    <li>HTTPS connection</li>
+                                    <li>Secure socket layer (SSL)</li>
+                                </ul>
+                            </div>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <div class="p-3 border rounded">
+                                <h5><i class="fas fa-shield-alt text-success"></i> Authentication</h5>
+                                <ul class="small">
+                                    <li>Secure password hashing</li>
+                                    <li>Two-factor authentication</li>
+                                    <li>Session management</li>
+                                    <li>Account lockout protection</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="row mt-3">
+                        <div class="col-md-6 mb-3">
+                            <div class="p-3 border rounded">
+                                <h5><i class="fas fa-search text-success"></i> Monitoring</h5>
+                                <ul class="small">
+                                    <li>24/7 fraud detection</li>
+                                    <li>Activity logging</li>
+                                    <li>Intrusion detection</li>
+                                    <li>Real-time alerts</li>
+                                </ul>
+                            </div>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <div class="p-3 border rounded">
+                                <h5><i class="fas fa-check-circle text-success"></i> Compliance</h5>
+                                <ul class="small">
+                                    <li>PCI DSS Level 1</li>
+                                    <li>GDPR compliant</li>
+                                    <li>CBN regulations</li>
+                                    <li>Regular audits</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <h3 class="mt-5"><i class="fas fa-user-shield text-primary"></i> How to Protect Your Account</h3>
+                    
+                    <h5 class="mt-3">1. Create a Strong Password</h5>
+                    <ul>
+                        <li>Use at least 12 characters (we require 8)</li>
+                        <li>Mix uppercase and lowercase letters</li>
+                        <li>Include numbers and special characters</li>
+                        <li>Never use personal information (names, birthdates)</li>
+                        <li>Avoid dictionary words</li>
+                        <li>Use unique passwords for each account</li>
+                    </ul>
+                    
+                    <h5 class="mt-3">2. Enable Two-Factor Authentication</h5>
+                    <ul>
+                        <li>Access Settings → Security</li>
+                        <li>Enable 2FA with authenticator app or SMS</li>
+                        <li>Save backup codes in a safe place</li>
+                        <li>Update your recovery email</li>
+                    </ul>
+                    
+                    <h5 class="mt-3">3. Secure Your Device</h5>
+                    <ul>
+                        <li>Keep OS and antivirus software updated</li>
+                        <li>Use a firewall</li>
+                        <li>Don't use public WiFi for sensitive transactions</li>
+                        <li>Use VPN on public networks</li>
+                        <li>Lock your device with password/biometrics</li>
+                    </ul>
+                    
+                    <h5 class="mt-3">4. Monitor Your Account</h5>
+                    <ul>
+                        <li>Review login history regularly</li>
+                        <li>Check active sessions</li>
+                        <li>Report suspicious activity immediately</li>
+                        <li>Update your phone number if changed</li>
+                    </ul>
+                    
+                    <h3 class="mt-5"><i class="fas fa-exclamation-circle text-danger"></i> Fraud Prevention & Warning Signs</h3>
+                    
+                    <div class="alert alert-danger">
+                        <h5>⚠️ Common Scams to Avoid:</h5>
+                        <ul>
+                            <li><strong>Overpayment Scams:</strong> Fake checks or advance payments for properties</li>
+                            <li><strong>Phishing:</strong> Emails asking you to "verify" your account or update payment info</li>
+                            <li><strong>Fake Listings:</strong> Properties listed multiple times with different prices</li>
+                            <li><strong>Impersonation:</strong> Fake agents claiming to represent ACHOULO</li>
+                            <li><strong>Wire Transfer Fraud:</strong> Requests to wire money outside the Platform</li>
+                            <li><strong>Fake Documentation:</strong> Forged property deeds or ownership certificates</li>
+                            <li><strong>Rental Scams:</strong> Properties rented at prices too good to be true</li>
+                        </ul>
+                    </div>
+                    
+                    <h5 class="mt-4">Red Flags:</h5>
+                    <ul>
+                        <li>Pressure to move conversations off-platform (to WhatsApp, email)</li>
+                        <li>Requests for upfront payments or deposits</li>
+                        <li>Unwillingness to verify identity or documentation</li>
+                        <li>Poor grammar or spelling in communications</li>
+                        <li>Prices significantly below market value</li>
+                        <li>Agents who cannot provide valid credentials</li>
+                        <li>Requests to pay via cryptocurrency or gift cards</li>
+                        <li>Urgency to make quick decisions</li>
+                    </ul>
+                    
+                    <h3 class="mt-5"><i class="fas fa-file-alt text-primary"></i> Document Safety</h3>
+                    
+                    <h5>When Uploading Documents:</h5>
+                    <ul>
+                        <li>Only upload to ACHOULO Platform (never share via email/WhatsApp)</li>
+                        <li>Verify you're on the official website (check SSL certificate)</li>
+                        <li>Use secure internet connection</li>
+                        <li>Don't upload bank account details or full card numbers</li>
+                        <li>Redact sensitive information if not required</li>
+                    </ul>
+                    
+                    <h5>Document Verification Process:</h5>
+                    <ul>
+                        <li>ACHOULO will never ask for sensitive docs via email</li>
+                        <li>All uploads are encrypted and securely stored</li>
+                        <li>Only authorized admin staff can access documents</li>
+                        <li>Documents are verified within 24-48 hours</li>
+                        <li>You'll receive notification once verified</li>
+                    </ul>
+                    
+                    <h3 class="mt-5"><i class="fas fa-flag text-primary"></i> Reporting Suspicious Activity</h3>
+                    
+                    <h5>If you encounter fraud or suspicious activity:</h5>
+                    <div class="alert alert-info">
+                        <ol>
+                            <li><strong>Don't engage further</strong> with the suspicious user</li>
+                            <li><strong>Screenshot evidence</strong> of the suspicious activity</li>
+                            <li><strong>Report immediately</strong> using our report system</li>
+                            <li><strong>Document details:</strong> Date, time, user information, messages</li>
+                            <li><strong>Contact support:</strong> security@achoulo.com</li>
+                            <li><strong>If financial loss:</strong> Report to CBN and local police</li>
+                        </ol>
+                    </div>
+                    
+                    <h3 class="mt-5"><i class="fas fa-info-circle text-primary"></i> What ACHOULO Never Does</h3>
+                    <ul>
+                        <li>Ask for your password via email or phone</li>
+                        <li>Process payments outside the Platform</li>
+                        <li>Ask for banking credentials or card details</li>
+                        <li>Request personal documents via email</li>
+                        <li>Guarantee property deals or outcomes</li>
+                        <li>Ask you to pay fees upfront (except verified transactions)</li>
+                        <li>Contact you with unsolicited investment offers</li>
+                    </ul>
+                    
+                    <h3 class="mt-5"><i class="fas fa-book text-primary"></i> For Sellers/Agents</h3>
+                    <ul>
+                        <li>Verify buyer credentials before engagement</li>
+                        <li>Never accept payment outside the Platform</li>
+                        <li>Upload authentic property documentation</li>
+                        <li>Use secure communication methods</li>
+                        <li>Keep login credentials private</li>
+                        <li>Report suspicious buyer inquiries</li>
+                        <li>Maintain updated insurance and licenses</li>
+                        <li>Follow all regulatory requirements</li>
+                    </ul>
+                    
+                    <h3 class="mt-5"><i class="fas fa-phone text-primary"></i> Security Contacts</h3>
+                    
+                    <div class="row mt-3">
+                        <div class="col-md-6">
+                            <div class="p-3 border rounded bg-light">
+                                <h5><i class="fas fa-shield-alt text-danger"></i> Fraud Reporting</h5>
+                                <p><strong>Email:</strong> security@achoulo.com</p>
+                                <p><strong>Phone:</strong> +234 (0) 123 456 7890</p>
+                                <p><strong>Response Time:</strong> 2 hours</p>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="p-3 border rounded bg-light">
+                                <h5><i class="fas fa-envelope text-info"></i> Support</h5>
+                                <p><strong>Email:</strong> support@achoulo.com</p>
+                                <p><strong>Phone:</strong> +234 (0) 123 456 7890</p>
+                                <p><strong>Hours:</strong> 24/7</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <h3 class="mt-5"><i class="fas fa-sync-alt text-primary"></i> If Your Account is Compromised</h3>
+                    <ol>
+                        <li>Change your password immediately</li>
+                        <li>Enable 2FA if not already enabled</li>
+                        <li>Review active sessions and log out all devices</li>
+                        <li>Check for unauthorized transactions</li>
+                        <li>Contact support immediately: security@achoulo.com</li>
+                        <li>Monitor your account for suspicious activity</li>
+                        <li>File a police report if financial loss occurred</li>
+                    </ol>
+                </div>
+            </div>
+            
+            <div class="alert alert-success">
+                <i class="fas fa-check-circle"></i>
+                <strong>Your Security is Our Priority:</strong> ACHOULO invests heavily in security infrastructure, compliance, and fraud prevention. Thank you for helping us maintain a safe Platform.
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

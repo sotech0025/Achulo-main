@@ -1,0 +1,225 @@
+{% extends "base_enhanced.html" %}
+
+{% block title %}Register - ACHOULO{% endblock %}
+
+{% block content %}
+<div class="container my-5">
+    <div class="row">
+        <div class="col-lg-6 mx-auto">
+            <div class="card border-0 shadow-lg">
+                <div class="card-body p-5">
+                    <h2 class="text-center mb-1">Create Your ACHOULO Account</h2>
+                    <p class="text-center text-muted mb-4">Join Nigeria's most trusted real estate marketplace</p>
+                    
+                    <form method="POST" id="registerForm">
+                        <!-- Name Field -->
+                        <div class="mb-3">
+                            <label class="form-label"><i class="fas fa-user"></i> Full Name *</label>
+                            <input type="text" class="form-control form-control-lg" name="name" 
+                                   placeholder="Enter your full name" required>
+                            <small class="text-muted">Must match your government ID</small>
+                        </div>
+                        
+                        <!-- Email Field -->
+                        <div class="mb-3">
+                            <label class="form-label"><i class="fas fa-envelope"></i> Email Address *</label>
+                            <input type="email" class="form-control form-control-lg" name="email" 
+                                   placeholder="your@email.com" required>
+                            <small class="text-muted">We'll never share your email</small>
+                        </div>
+                        
+                        <!-- Phone Field -->
+                        <div class="mb-3">
+                            <label class="form-label"><i class="fas fa-phone"></i> Phone Number (Nigerian) *</label>
+                            <input type="tel" class="form-control form-control-lg" name="phone" 
+                                   placeholder="09XXXXXXXXX or +2349XXXXXXXXX" required>
+                            <small class="text-muted">Must be a valid Nigerian number</small>
+                        </div>
+                        
+                        <!-- User Role Selection -->
+                        <div class="mb-4">
+                            <label class="form-label d-block mb-3"><i class="fas fa-user-tag"></i> What are you? *</label>
+                            
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <div class="form-check">
+                                        <input class="form-check-input role-radio" type="radio" name="role" 
+                                               value="buyer" id="roleBuyer" checked>
+                                        <label class="form-check-label w-100" for="roleBuyer">
+                                            <div class="p-3 border rounded text-center cursor-pointer role-card">
+                                                <i class="fas fa-search fa-2x text-primary mb-2 d-block"></i>
+                                                <strong>Buyer</strong>
+                                                <p class="small text-muted mt-1">Search and find properties</p>
+                                            </div>
+                                        </label>
+                                    </div>
+                                </div>
+                                
+                                <div class="col-md-6 mb-3">
+                                    <div class="form-check">
+                                        <input class="form-check-input role-radio" type="radio" name="role" value="seller" id="roleSeller">
+                                        <label class="form-check-label w-100" for="roleSeller">
+                                            <div class="p-3 border rounded text-center cursor-pointer role-card">
+                                                <i class="fas fa-home fa-2x text-success mb-2 d-block"></i>
+                                                <strong>Listing Agent</strong>
+                                                <p class="small text-muted mt-1">List and sell properties</p>
+                                            </div>
+                                        </label>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Password Field -->
+                        <div class="mb-3">
+                            <label class="form-label"><i class="fas fa-lock"></i> Password *</label>
+                            <input type="password" class="form-control form-control-lg" name="password" 
+                                   id="password" placeholder="Create a strong password" required>
+                            <small class="text-muted d-block mt-2">
+                                <i class="fas fa-info-circle"></i> Must contain:
+                                <ul class="small mt-2">
+                                    <li id="check-length"><i class="fas fa-times text-danger"></i> At least 8 characters</li>
+                                    <li id="check-upper"><i class="fas fa-times text-danger"></i> Uppercase letter (A-Z)</li>
+                                    <li id="check-number"><i class="fas fa-times text-danger"></i> Number (0-9)</li>
+                                    <li id="check-special"><i class="fas fa-times text-danger"></i> Special character (!@#$%^&*)</li>
+                                </ul>
+                            </small>
+                        </div>
+                        
+                        <!-- Confirm Password -->
+                        <div class="mb-3">
+                            <label class="form-label"><i class="fas fa-lock"></i> Confirm Password *</label>
+                            <input type="password" class="form-control form-control-lg" name="confirm_password" 
+                                   id="confirmPassword" placeholder="Re-enter your password" required>
+                            <small id="passwordMatch" class="text-danger d-none"><i class="fas fa-times"></i> Passwords don't match</small>
+                        </div>
+                        
+                        <!-- Terms & Privacy -->
+                        <div class="mb-3">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" name="accept_terms" 
+                                       id="acceptTerms" required>
+                                <label class="form-check-label" for="acceptTerms">
+                                    I agree to the <a href="{{ url_for('terms') }}" target="_blank">Terms of Service</a> *
+                                </label>
+                            </div>
+                        </div>
+                        
+                        <div class="mb-4">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" name="accept_privacy" 
+                                       id="acceptPrivacy" required>
+                                <label class="form-check-label" for="acceptPrivacy">
+                                    I agree to the <a href="{{ url_for('privacy') }}" target="_blank">Privacy Policy</a> *
+                                </label>
+                            </div>
+                        </div>
+                        
+                        <!-- Submit Button -->
+                        <button type="submit" class="btn btn-primary btn-lg w-100 mb-3">
+                            <i class="fas fa-user-plus"></i> Create Account
+                        </button>
+                    </form>
+                    
+                    <hr>
+                    
+                    <p class="text-center">
+                        Already have an account? <a href="{{ url_for('login') }}">Log in here</a>
+                    </p>
+                    
+                    <!-- Security Info -->
+                    <div class="alert alert-info mt-4">
+                        <i class="fas fa-shield-alt"></i> <strong>Security First:</strong>
+                        <ul class="small mt-2 mb-0">
+                            <li>✓ 256-bit encryption</li>
+                            <li>✓ Industry-leading fraud detection</li>
+                            <li>✓ Identity verification required</li>
+                            <li>✓ GDPR & CBN compliant</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .role-card {
+        cursor: pointer;
+        transition: all 0.3s ease;
+    }
+    
+    .role-card:hover {
+        background-color: #f8f9fa;
+        transform: translateY(-2px);
+    }
+    
+    .form-check-input:checked + label .role-card {
+        border-color: var(--primary-color);
+        background-color: #e8f9f3;
+    }
+</style>
+
+<script>
+    const passwordInput = document.getElementById('password');
+    const confirmPasswordInput = document.getElementById('confirmPassword');
+    const form = document.getElementById('registerForm');
+    
+    // Password strength validation
+    passwordInput.addEventListener('input', function() {
+        const password = this.value;
+        
+        // Check length
+        const hasLength = password.length >= 8;
+        updateCheck('check-length', hasLength);
+        
+        // Check uppercase
+        const hasUpper = /[A-Z]/.test(password);
+        updateCheck('check-upper', hasUpper);
+        
+        // Check number
+        const hasNumber = /[0-9]/.test(password);
+        updateCheck('check-number', hasNumber);
+        
+        // Check special character
+        const hasSpecial = /[!@#$%^&*(),.?":{}|<>]/.test(password);
+        updateCheck('check-special', hasSpecial);
+        
+        validatePasswordMatch();
+    });
+    
+    confirmPasswordInput.addEventListener('input', validatePasswordMatch);
+    
+    function updateCheck(elementId, isValid) {
+        const element = document.getElementById(elementId);
+        if (isValid) {
+            element.innerHTML = element.innerHTML.replace('fa-times', 'fa-check');
+            element.classList.remove('text-danger');
+            element.classList.add('text-success');
+        } else {
+            element.innerHTML = element.innerHTML.replace('fa-check', 'fa-times');
+            element.classList.remove('text-success');
+            element.classList.add('text-danger');
+        }
+    }
+    
+    function validatePasswordMatch() {
+        const match = passwordInput.value === confirmPasswordInput.value && passwordInput.value.length > 0;
+        const matchElement = document.getElementById('passwordMatch');
+        if (!match && confirmPasswordInput.value.length > 0) {
+            matchElement.classList.remove('d-none');
+        } else {
+            matchElement.classList.add('d-none');
+        }
+    }
+    
+    // Form validation
+    form.addEventListener('submit', function(e) {
+        if (passwordInput.value !== confirmPasswordInput.value) {
+            e.preventDefault();
+            alert('Passwords do not match!');
+            return false;
+        }
+    });
+</script>
+{% endblock %}

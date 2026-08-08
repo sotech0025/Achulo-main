@@ -1,0 +1,325 @@
+{% extends "base_enhanced.html" %}
+
+{% block title %}KYC Verification - ACHOULO{% endblock %}
+
+{% block content %}
+<div class="container my-5">
+    <div class="row">
+        <div class="col-lg-8 mx-auto">
+            
+            <!-- KYC Status Banner -->
+            <div class="card border-0 shadow-sm mb-4">
+                <div class="card-body p-4">
+                    <div class="d-flex align-items-center justify-content-between">
+                        <div>
+                            <h4 class="mb-1">KYC Verification Status</h4>
+                            <p class="text-muted mb-0">Complete your identity verification to unlock all features</p>
+                        </div>
+                        <div>
+                            {% if user.kyc_status == 'verified' %}
+                                <span class="badge bg-success p-3">
+                                    <i class="fas fa-check-circle"></i> Verified
+                                </span>
+                            {% elif user.kyc_status == 'pending' %}
+                                <span class="badge bg-warning p-3">
+                                    <i class="fas fa-hourglass-half"></i> Pending Review
+                                </span>
+                            {% else %}
+                                <span class="badge bg-danger p-3">
+                                    <i class="fas fa-times-circle"></i> Not Verified
+                                </span>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Progress Indicator -->
+            <div class="card border-0 shadow-sm mb-4">
+                <div class="card-body p-4">
+                    <h5 class="mb-4">Verification Steps</h5>
+                    <div class="row">
+                        <div class="col-md-4 text-center mb-3">
+                            <div class="step-circle mb-2 {% if user.kyc_status != 'unverified' %}bg-success text-white{% else %}bg-light{% endif %}" style="width: 60px; height: 60px; border-radius: 50%; margin-left: auto; margin-right: auto; display: flex; align-items: center; justify-content: center; font-size: 24px;">
+                                {% if user.kyc_status != 'unverified' %}
+                                    <i class="fas fa-check"></i>
+                                {% else %}
+                                    1
+                                {% endif %}
+                            </div>
+                            <p class="small font-weight-bold">Upload ID</p>
+                        </div>
+                        <div class="col-md-4 text-center mb-3">
+                            <div class="step-circle mb-2 {% if user.kyc_status == 'verified' %}bg-success text-white{% else %}bg-light{% endif %}" style="width: 60px; height: 60px; border-radius: 50%; margin-left: auto; margin-right: auto; display: flex; align-items: center; justify-content: center; font-size: 24px;">
+                                {% if user.kyc_status == 'verified' %}
+                                    <i class="fas fa-check"></i>
+                                {% else %}
+                                    2
+                                {% endif %}
+                            </div>
+                            <p class="small font-weight-bold">Admin Review</p>
+                        </div>
+                        <div class="col-md-4 text-center mb-3">
+                            <div class="step-circle mb-2 {% if user.kyc_status == 'verified' %}bg-success text-white{% else %}bg-light{% endif %}" style="width: 60px; height: 60px; border-radius: 50%; margin-left: auto; margin-right: auto; display: flex; align-items: center; justify-content: center; font-size: 24px;">
+                                {% if user.kyc_status == 'verified' %}
+                                    <i class="fas fa-check"></i>
+                                {% else %}
+                                    3
+                                {% endif %}
+                            </div>
+                            <p class="small font-weight-bold">Verified!</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Document Upload Form -->
+            <div class="card border-0 shadow-sm mb-4">
+                <div class="card-body p-4">
+                    <h5 class="mb-4"><i class="fas fa-file-upload"></i> Upload Identification Document</h5>
+                    
+                    <form method="POST" enctype="multipart/form-data" id="kycForm">
+                        
+                        <!-- Document Type Selection -->
+                        <div class="mb-4">
+                            <label class="form-label"><strong>Document Type *</strong></label>
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="radio" name="document_type" 
+                                               value="nin" id="docNIN" checked>
+                                        <label class="form-check-label" for="docNIN">
+                                            <strong>National ID (NIN)</strong>
+                                            <p class="small text-muted">Fastest verification (2-4 hours)</p>
+                                        </label>
+                                    </div>
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="radio" name="document_type" 
+                                               value="passport" id="docPassport">
+                                        <label class="form-check-label" for="docPassport">
+                                            <strong>International Passport</strong>
+                                            <p class="small text-muted">Standard verification (24-48 hours)</p>
+                                        </label>
+                                    </div>
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="radio" name="document_type" 
+                                               value="drivers_license" id="docDL">
+                                        <label class="form-check-label" for="docDL">
+                                            <strong>Driver's License</strong>
+                                            <p class="small text-muted">Standard verification (24-48 hours)</p>
+                                        </label>
+                                    </div>
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="radio" name="document_type" 
+                                               value="voters_card" id="docVC">
+                                        <label class="form-check-label" for="docVC">
+                                            <strong>Voter's Card</strong>
+                                            <p class="small text-muted">Standard verification (24-48 hours)</p>
+                                        </label>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- File Upload -->
+                        <div class="mb-4">
+                            <label class="form-label"><strong>Upload Document *</strong></label>
+                            <div class="upload-area border-2 border-dashed rounded-3 p-5 text-center bg-light" id="uploadArea">
+                                <i class="fas fa-cloud-upload-alt fa-3x text-primary mb-3 d-block"></i>
+                                <h5>Drag and drop your document here</h5>
+                                <p class="text-muted">or click below to browse</p>
+                                <input type="file" class="d-none" name="document" id="fileInput" 
+                                       accept=".pdf,.jpg,.jpeg,.png,.doc,.docx" required>
+                                <button type="button" class="btn btn-outline-primary" onclick="document.getElementById('fileInput').click()">
+                                    <i class="fas fa-browse"></i> Browse Files
+                                </button>
+                                <p class="small text-muted mt-3 mb-0">
+                                    Accepted formats: PDF, JPG, PNG, DOC, DOCX
+                                    <br>Maximum file size: 10MB
+                                </p>
+                            </div>
+                            <div id="fileSelected" class="alert alert-success d-none mt-3">
+                                <i class="fas fa-check-circle"></i> File selected: <strong id="fileName"></strong>
+                            </div>
+                        </div>
+                        
+                        <!-- Safety Guidelines -->
+                        <div class="alert alert-info">
+                            <h6><i class="fas fa-info-circle"></i> Security Tips:</h6>
+                            <ul class="small mb-0">
+                                <li>Take a clear, well-lit photo of your document</li>
+                                <li>Ensure the document is not expired</li>
+                                <li>All corners and details must be visible</li>
+                                <li>Your uploaded documents are encrypted and secure</li>
+                                <li>We never share your documents with third parties</li>
+                            </ul>
+                        </div>
+                        
+                        <!-- Submit Button -->
+                        <button type="submit" class="btn btn-primary btn-lg w-100">
+                            <i class="fas fa-upload"></i> Submit for Verification
+                        </button>
+                    </form>
+                </div>
+            </div>
+            
+            <!-- Verification Details -->
+            <div class="card border-0 shadow-sm">
+                <div class="card-body p-4">
+                    <h5 class="mb-4"><i class="fas fa-clock"></i> What Happens Next?</h5>
+                    
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <div class="p-3 bg-light rounded">
+                                <h6><i class="fas fa-1"></i> Document Review</h6>
+                                <p class="small text-muted mb-0">Our team verifies your documents for authenticity and clarity within 24-48 hours.</p>
+                            </div>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <div class="p-3 bg-light rounded">
+                                <h6><i class="fas fa-2"></i> Database Verification</h6>
+                                <p class="small text-muted mb-0">We cross-check your information with government databases (NIN, BVN, CAC) if applicable.</p>
+                            </div>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <div class="p-3 bg-light rounded">
+                                <h6><i class="fas fa-3"></i> Fraud Screening</h6>
+                                <p class="small text-muted mb-0">Advanced AI and manual checks detect any fraudulent activity or document forgery.</p>
+                            </div>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <div class="p-3 bg-light rounded">
+                                <h6><i class="fas fa-4"></i> Account Activation</h6>
+                                <p class="small text-muted mb-0">Once verified, you'll receive a confirmation email and gain full access to all features.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- FAQ -->
+            <div class="card border-0 shadow-sm mt-4">
+                <div class="card-body p-4">
+                    <h5 class="mb-4"><i class="fas fa-question-circle"></i> Frequently Asked Questions</h5>
+                    
+                    <div class="accordion" id="kycFAQ">
+                        <div class="accordion-item border-0 mb-3">
+                            <h2 class="accordion-header">
+                                <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#faq1">
+                                    Why do I need KYC verification?
+                                </button>
+                            </h2>
+                            <div id="faq1" class="accordion-collapse collapse show" data-bs-parent="#kycFAQ">
+                                <div class="accordion-body">
+                                    KYC verification is a regulatory requirement to prevent fraud, money laundering, and terrorist financing. It protects both you and other users on the platform.
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="accordion-item border-0 mb-3">
+                            <h2 class="accordion-header">
+                                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#faq2">
+                                    Is my information secure?
+                                </button>
+                            </h2>
+                            <div id="faq2" class="accordion-collapse collapse" data-bs-parent="#kycFAQ">
+                                <div class="accordion-body">
+                                    Yes. All information is encrypted with AES-256 encryption and stored securely. We comply with GDPR and Nigerian data protection laws.
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="accordion-item border-0 mb-3">
+                            <h2 class="accordion-header">
+                                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#faq3">
+                                    How long does verification take?
+                                </button>
+                            </h2>
+                            <div id="faq3" class="accordion-collapse collapse" data-bs-parent="#kycFAQ">
+                                <div class="accordion-body">
+                                    Most verifications complete within 24-48 hours. NIN verification is fastest (2-4 hours). You'll receive an email when your account is verified.
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="accordion-item border-0">
+                            <h2 class="accordion-header">
+                                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#faq4">
+                                    Can I use unverified account?
+                                </button>
+                            </h2>
+                            <div id="faq4" class="accordion-collapse collapse" data-bs-parent="#kycFAQ">
+                                <div class="accordion-body">
+                                    Unverified accounts can browse listings but cannot make purchases or create listings. Verification is required for all transactions.
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .upload-area {
+        cursor: pointer;
+        transition: all 0.3s ease;
+    }
+    
+    .upload-area:hover {
+        background-color: #f0f0f0;
+        border-color: var(--primary-color) !important;
+    }
+    
+    .accordion-button:not(.collapsed) {
+        background-color: #f0f0f0;
+        color: var(--text-dark);
+    }
+    
+    .accordion-button:focus {
+        box-shadow: none;
+        border-color: var(--primary-color);
+    }
+</style>
+
+<script>
+    const uploadArea = document.getElementById('uploadArea');
+    const fileInput = document.getElementById('fileInput');
+    const fileSelected = document.getElementById('fileSelected');
+    const fileName = document.getElementById('fileName');
+    
+    // Drag and drop
+    uploadArea.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        uploadArea.style.backgroundColor = '#e8f9f3';
+    });
+    
+    uploadArea.addEventListener('dragleave', () => {
+        uploadArea.style.backgroundColor = '';
+    });
+    
+    uploadArea.addEventListener('drop', (e) => {
+        e.preventDefault();
+        uploadArea.style.backgroundColor = '';
+        fileInput.files = e.dataTransfer.files;
+        updateFileDisplay();
+    });
+    
+    // File selection
+    fileInput.addEventListener('change', updateFileDisplay);
+    
+    function updateFileDisplay() {
+        if (fileInput.files.length > 0) {
+            fileName.textContent = fileInput.files[0].name;
+            fileSelected.classList.remove('d-none');
+        }
+    }
+</script>
+{% endblock %}
