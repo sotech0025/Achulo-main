@@ -1,4 +1,4 @@
-{% extends "base.html" %}
+{% extends "base_enhanced.html" %}
 {% block content %}
 
 <section class="bg-primary text-primary-foreground py-14 md:py-24">
@@ -46,7 +46,7 @@
       <input type="hidden" name="rentalPeriod" value="{{ rental_period }}" />
       {% for p in price_presets %}
         <button type="submit" name="price" value="{{ loop.index0 }}"
-          class="px-3 py-1.5 rounded-full border text-sm font-medium transition-all {{ 'bg-primary text-primary-foreground border-primary' if selected_price_idx == loop.index0 else 'border-border hover:border-primary hover:text-primary bg-background' }}">
+          class="px-3 py-1.5 rounded-full border text-sm font-medium transition-all {{ 'bg-primary text-primary-foreground border-primary' if selected_price_idx == loop.index0 else 'border-border [...]
           {{ p.label }}
         </button>
       {% endfor %}
@@ -76,7 +76,7 @@
         {% if active_filters %}Try adjusting your filters or search a different location.{% else %}No listings are currently active. Check back soon.{% endif %}
       </p>
       {% if active_filters %}
-        <a href="{{ url_for('home') }}" class="inline-block mt-4 text-sm font-medium border border-border rounded-lg px-4 py-1.5 hover:border-primary hover:text-primary transition">Clear filters</a>
+        <a href="{{ url_for('home') }}" class="inline-block mt-4 text-sm font-medium border border-border rounded-lg px-4 py-1.5 hover:border-primary hover:text-primary transition">Clear filters</[...]
       {% endif %}
     </div>
   {% else %}
