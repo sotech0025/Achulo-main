@@ -1,0 +1,71 @@
+{% extends "base.html" %}
+{% block title %}Agent Dashboard — {{ app_name }}{% endblock %}
+{% block content %}
+<div class="container mx-auto px-4 md:px-8 max-w-6xl py-10">
+  <div class="flex items-center justify-between mb-8 flex-wrap gap-4">
+    <div>
+      <h1 class="text-3xl font-serif font-bold">Agent Dashboard</h1>
+      <p class="text-muted-foreground text-sm mt-1">Manage your property listings.</p>
+    </div>
+    <a href="{{ url_for('dashboard_listing_new') }}" class="inline-flex items-center bg-primary text-primary-foreground text-sm font-medium px-4 py-2 rounded-lg hover:opacity-90 transition">+ New Listing</a>
+  </div>
+
+  <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-10">
+    <div class="bg-card border border-border rounded-xl p-4">
+      <p class="text-sm text-muted-foreground mb-1">Total Listings</p>
+      <div class="text-2xl font-bold">{{ listings|length }}</div>
+    </div>
+    <div class="bg-card border border-border rounded-xl p-4">
+      <p class="text-sm text-muted-foreground mb-1">Active</p>
+      <div class="text-2xl font-bold">{{ listings|selectattr('status', 'equalto', 'active')|list|length }}</div>
+    </div>
+    <div class="bg-card border border-border rounded-xl p-4">
+      <p class="text-sm text-muted-foreground mb-1">Pending</p>
+      <div class="text-2xl font-bold">{{ listings|selectattr('status', 'equalto', 'draft')|list|length }}</div>
+    </div>
+    <div class="bg-card border border-border rounded-xl p-4">
+      <p class="text-sm text-muted-foreground mb-1">KYC Status</p>
+      <div class="text-sm font-medium {{ 'text-green-600' if user['kyc_status'] == 'verified' else 'text-yellow-600' }}">
+        {{ 'Verified' if user['kyc_status'] == 'verified' else 'Pending' }}
+      </div>
+    </div>
+  </div>
+
+  {% if listings|length == 0 %}
+    <div class="text-center py-16 bg-muted/30 rounded-2xl border border-border">
+      <h3 class="text-lg font-medium mb-2">No listings yet</h3>
+      <p class="text-sm text-muted-foreground mb-4">Create your first listing to start receiving inquiries.</p>
+      <a href="{{ url_for('dashboard_listing_new') }}" class="inline-block text-sm font-medium bg-primary text-primary-foreground rounded-lg px-4 py-2 hover:opacity-90 transition">+ New Listing</a>
+    </div>
+  {% else %}
+    <div class="bg-card border border-border rounded-xl overflow-hidden">
+      <table class="w-full text-sm">
+        <thead class="bg-muted/40 text-left text-muted-foreground border-b border-border">
+          <tr>
+            <th class="px-4 py-3 font-medium">Title</th>
+            <th class="px-4 py-3 font-medium">Price</th>
+            <th class="px-4 py-3 font-medium">Status</th>
+            <th class="px-4 py-3 font-medium">Created</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for listing in listings %}
+            <tr class="border-t border-border hover:bg-muted/20 transition-colors">
+              <td class="px-4 py-3">
+                <a href="{{ url_for('listing_detail', listing_id=listing['id']) }}" class="font-medium hover:text-primary">{{ listing['title'] }}</a>
+              </td>
+              <td class="px-4 py-3 font-medium">₦{{ "{:,}".format(listing['price']) }}</td>
+              <td class="px-4 py-3">
+                <span class="text-xs font-medium px-2 py-0.5 rounded-full {{ 'bg-green-50 text-green-700' if listing['status'] == 'active' else 'bg-yellow-50 text-yellow-700' }}">
+                  {{ listing['status']|capitalize }}
+                </span>
+              </td>
+              <td class="px-4 py-3 text-muted-foreground text-xs">{{ listing['created_at'][:10] }}</td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  {% endif %}
+</div>
+{% endblock %}

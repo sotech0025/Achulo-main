@@ -29,11 +29,11 @@
               <td class="px-4 py-3">
                 <a href="{{ url_for('listing_detail', listing_id=listing['id']) }}" class="font-medium hover:text-primary">{{ listing['title'] }}</a>
               </td>
-              <td class="px-4 py-3 text-muted-foreground">{{ listing['location_tag'] }}</td>
-              <td class="px-4 py-3 font-medium">&#8358;{{ "{:,}".format(listing['price']) }}</td>
+              <td class="px-4 py-3 text-muted-foreground">{{ listing['location_tag'] or 'N/A' }}</td>
+              <td class="px-4 py-3 font-medium">₦{{ "{:,}".format(listing['price']) }}</td>
               <td class="px-4 py-3">
                 <span class="text-xs font-medium px-2 py-0.5 rounded-full {{ 'bg-green-50 text-green-700' if listing['status'] == 'active' else 'bg-yellow-50 text-yellow-700' }}">
-                  {{ listing['status'] }}
+                  {{ listing['status']|capitalize }}
                 </span>
               </td>
             </tr>
