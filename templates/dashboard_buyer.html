@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+{% block title %}Dashboard — {{ app_name }}{% endblock %}
+{% block content %}
+<div class="container mx-auto px-4 md:px-8 max-w-6xl py-10">
+  <div class="flex items-center justify-between mb-8 flex-wrap gap-4">
+    <div>
+      <h1 class="text-3xl font-serif font-bold">Welcome, {{ user['name'] }}</h1>
+      <p class="text-muted-foreground text-sm mt-1">Browse and manage your saved properties.</p>
+    </div>
+  </div>
+
+  <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+    <div class="bg-card border border-border rounded-xl p-6">
+      <h3 class="font-semibold mb-2">Account Status</h3>
+      <p class="text-muted-foreground text-sm mb-3">Role: <span class="font-medium text-foreground">{{ 'Buyer' if user['role'] == 'buyer' else 'Listing Agent' }}</span></p>
+      <a href="{{ url_for('dashboard_kyc') }}" class="inline-block text-sm font-medium text-primary hover:underline">Complete KYC Verification →</a>
+    </div>
+
+    <div class="bg-card border border-border rounded-xl p-6">
+      <h3 class="font-semibold mb-2">Browse Properties</h3>
+      <p class="text-muted-foreground text-sm mb-3">Explore verified listings in your area.</p>
+      <a href="{{ url_for('home') }}" class="inline-block text-sm font-medium text-primary hover:underline">View Listings →</a>
+    </div>
+
+    <div class="bg-card border border-border rounded-xl p-6">
+      <h3 class="font-semibold mb-2">Account Settings</h3>
+      <p class="text-muted-foreground text-sm mb-3">Update your profile and preferences.</p>
+      <a href="#" class="inline-block text-sm font-medium text-primary hover:underline">Settings →</a>
+    </div>
+  </div>
+
+  <div class="mt-10">
+    <h2 class="text-xl font-bold mb-4">Why ACHOULO?</h2>
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div class="bg-primary/5 border border-primary/20 rounded-lg p-4">
+        <p class="font-semibold text-sm mb-2">🔒 Verified Agents Only</p>
+        <p class="text-sm text-muted-foreground">Every listing agent passes NIN biometric verification.</p>
+      </div>
+      <div class="bg-primary/5 border border-primary/20 rounded-lg p-4">
+        <p class="font-semibold text-sm mb-2">🛡️ Secure Escrow</p>
+        <p class="text-sm text-muted-foreground">Payment held safely until you confirm the property.</p>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
