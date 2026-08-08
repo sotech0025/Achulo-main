@@ -1,4 +1,4 @@
-{% extends "base_enhanced.html" %}
+{% extends "base.html" %}
 {% block content %}
 
 <section class="bg-primary text-primary-foreground py-14 md:py-24">
@@ -15,7 +15,7 @@
     </p>
 
     <form method="get" action="{{ url_for('home') }}" class="flex w-full max-w-3xl mx-auto bg-background rounded-xl shadow-2xl p-3 gap-3 flex-wrap md:flex-nowrap items-center">
-      <input type="text" name="location" value="{{ location }}" placeholder="Search by city or area (e.g. Lekki)"
+      <input type="text" name="location" value="{{ location or '' }}" placeholder="Search by city or area (e.g. Lekki)"
              class="flex-1 min-w-[160px] h-11 px-3 rounded-md text-foreground border border-border focus:outline-none focus:ring-2 focus:ring-primary" />
 
       <div class="hidden md:block h-8 w-px bg-border"></div>
@@ -42,15 +42,15 @@
   <div class="container mx-auto px-4 md:px-8 max-w-7xl py-4">
     <p class="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">Price range</p>
     <form method="get" class="flex flex-wrap gap-2 items-center">
-      <input type="hidden" name="location" value="{{ location }}" />
-      <input type="hidden" name="rentalPeriod" value="{{ rental_period }}" />
+      <input type="hidden" name="location" value="{{ location or '' }}" />
+      <input type="hidden" name="rentalPeriod" value="{{ rental_period or '' }}" />
       {% for p in price_presets %}
         <button type="submit" name="price" value="{{ loop.index0 }}"
-          class="px-3 py-1.5 rounded-full border text-sm font-medium transition-all {{ 'bg-primary text-primary-foreground border-primary' if selected_price_idx == loop.index0 else 'border-border [...]
+          class="px-3 py-1.5 rounded-full border text-sm font-medium transition-all {{ 'bg-primary text-primary-foreground border-primary' if selected_price_idx == loop.index0 else 'border-border text-muted-foreground hover:border-primary' }}">
           {{ p.label }}
         </button>
       {% endfor %}
-      {% if active_filters %}
+      {% if location or rental_period %}
         <a href="{{ url_for('home') }}" class="ml-2 flex items-center gap-1 text-xs text-muted-foreground hover:text-destructive transition-colors">
           ✕ Clear all
         </a>
@@ -65,44 +65,15 @@
       <h2 class="text-xl font-bold">
         {% if location %}Properties in {{ location }}{% else %}Featured Properties{% endif %}
       </h2>
-      <p class="text-sm text-muted-foreground mt-0.5">{{ listings|length }} propert{{ 'y' if listings|length == 1 else 'ies' }} found</p>
+      <p class="text-sm text-muted-foreground mt-0.5">Featured listings</p>
     </div>
   </div>
 
-  {% if listings|length == 0 %}
-    <div class="text-center py-24 bg-muted/30 rounded-2xl border border-border">
-      <h3 class="text-lg font-semibold mb-1">No properties found</h3>
-      <p class="text-muted-foreground text-sm">
-        {% if active_filters %}Try adjusting your filters or search a different location.{% else %}No listings are currently active. Check back soon.{% endif %}
-      </p>
-      {% if active_filters %}
-        <a href="{{ url_for('home') }}" class="inline-block mt-4 text-sm font-medium border border-border rounded-lg px-4 py-1.5 hover:border-primary hover:text-primary transition">Clear filters</[...]
-      {% endif %}
-    </div>
-  {% else %}
-    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
-      {% for listing in listings %}
-        <a href="{{ url_for('listing_detail', listing_id=listing['id']) }}" class="group block bg-card border border-border rounded-2xl overflow-hidden hover:shadow-lg transition-shadow">
-          <div class="aspect-[4/3] bg-muted flex items-center justify-center overflow-hidden">
-            {% if listing['image_url'] %}
-              <img src="{{ listing['image_url'] }}" alt="{{ listing['title'] }}" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
-            {% else %}
-              <span class="text-muted-foreground text-sm">No photo</span>
-            {% endif %}
-          </div>
-          <div class="p-4">
-            <p class="text-xs font-semibold text-primary uppercase tracking-wide mb-1">{{ listing['location_tag'] }}</p>
-            <h3 class="font-semibold leading-snug mb-1 truncate">{{ listing['title'] }}</h3>
-            <p class="text-sm text-muted-foreground mb-2">{{ listing['bedrooms'] }} bed &middot; {{ listing['bathrooms'] }} bath</p>
-            <p class="font-bold text-primary">
-              &#8358;{{ "{:,}".format(listing['price']) }}
-              <span class="font-normal text-muted-foreground text-sm">/ {{ 'yr' if listing['rental_period'] == 'per_annum' else 'mo' }}</span>
-            </p>
-          </div>
-        </a>
-      {% endfor %}
-    </div>
-  {% endif %}
+  <div class="text-center py-16 bg-muted/30 rounded-2xl border border-border">
+    <h3 class="text-lg font-semibold mb-1">No listings yet</h3>
+    <p class="text-muted-foreground text-sm">Start by registering as a seller to list your first property.</p>
+    <a href="{{ url_for('register') }}" class="inline-block mt-4 text-sm font-medium border border-border rounded-lg px-4 py-1.5 hover:border-primary hover:text-primary transition">Register as Seller</a>
+  </div>
 </div>
 
 <section class="bg-primary/5 border-t border-border py-10 mt-6">
