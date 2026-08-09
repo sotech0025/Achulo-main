@@ -307,7 +307,10 @@ def seller_required(f):
         if 'user_id' not in session:
             flash('Please log in first.', 'error')
             return redirect(url_for('login'))
-        
+
+        if session.get('is_admin'):
+            return f(*args, **kwargs)
+
         db = get_db()
         user = db.execute('SELECT role FROM users WHERE id = ?', (session['user_id'],)).fetchone()
         
@@ -565,7 +568,7 @@ def dashboard():
     db = get_db()
     user = db.execute('SELECT * FROM users WHERE id = ?', (session['user_id'],)).fetchone()
     
-    if session.get('user_role') == 'seller':
+    if session.get('user_role') == 'seller' or session.get('is_admin'):
         listings = db.execute(
             'SELECT * FROM listings WHERE owner_id = ? ORDER BY created_at DESC LIMIT 5',
             (session['user_id'],)
