@@ -24,12 +24,24 @@
       <div class="text-2xl font-bold">{{ listings|selectattr('status', 'equalto', 'draft')|list|length }}</div>
     </div>
     <div class="bg-card border border-border rounded-xl p-4">
-      <p class="text-sm text-muted-foreground mb-1">KYC Status</p>
-      <div class="text-sm font-medium {{ 'text-green-600' if user['kyc_status'] == 'verified' else 'text-yellow-600' }}">
-        {{ 'Verified' if user['kyc_status'] == 'verified' else 'Pending' }}
+      <p class="text-sm text-muted-foreground mb-1">Certificate Status</p>
+      <div class="text-sm font-medium {{ 'text-green-600' if user['kyc_status'] == 'verified' else ('text-destructive' if user['kyc_status'] == 'rejected' else 'text-yellow-600') }}">
+        {{ 'Verified' if user['kyc_status'] == 'verified' else ('Rejected' if user['kyc_status'] == 'rejected' else 'Pending Admin Review') }}
       </div>
     </div>
   </div>
+
+  {% if user['account_status'] == 'suspended' %}
+    <div class="bg-yellow-50 border border-yellow-200 text-yellow-800 text-sm rounded-xl p-4 mb-8 flex items-center justify-between flex-wrap gap-2">
+      <span>Your account is currently suspended{% if user['ban_reason'] %}: {{ user['ban_reason'] }}{% endif %}.</span>
+      <a href="{{ url_for('appeal') }}" class="font-medium underline">Request a review</a>
+    </div>
+  {% endif %}
+  {% if user['kyc_status'] != 'verified' %}
+    <div class="bg-muted/30 border border-border text-sm rounded-xl p-4 mb-8">
+      Your listings won't go live until your certificate is verified by an admin.
+    </div>
+  {% endif %}
 
   {% if listings|length == 0 %}
     <div class="text-center py-16 bg-muted/30 rounded-2xl border border-border">

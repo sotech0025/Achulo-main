@@ -1,0 +1,171 @@
+{% extends "base.html" %}
+{% block title %}Admin Dashboard — {{ app_name }}{% endblock %}
+{% block content %}
+<div class="container mx-auto px-4 md:px-8 max-w-6xl py-10">
+  <h1 class="text-3xl font-serif font-bold mb-8">Admin Dashboard</h1>
+
+  <div class="grid grid-cols-2 md:grid-cols-6 gap-4 mb-10">
+    <div class="bg-card border border-border rounded-xl p-4"><p class="text-xs text-muted-foreground mb-1">Users</p><div class="text-2xl font-bold">{{ stats.total_users }}</div></div>
+    <div class="bg-card border border-border rounded-xl p-4"><p class="text-xs text-muted-foreground mb-1">Listings</p><div class="text-2xl font-bold">{{ stats.total_listings }}</div></div>
+    <div class="bg-card border border-border rounded-xl p-4"><p class="text-xs text-muted-foreground mb-1">Pending KYC</p><div class="text-2xl font-bold text-yellow-600">{{ stats.pending_kyc }}</div></div>
+    <div class="bg-card border border-border rounded-xl p-4"><p class="text-xs text-muted-foreground mb-1">Pending Listings</p><div class="text-2xl font-bold text-yellow-600">{{ stats.pending_reviews }}</div></div>
+    <div class="bg-card border border-border rounded-xl p-4"><p class="text-xs text-muted-foreground mb-1">Flagged</p><div class="text-2xl font-bold text-destructive">{{ stats.flagged_listings }}</div></div>
+    <div class="bg-card border border-border rounded-xl p-4"><p class="text-xs text-muted-foreground mb-1">Appeals</p><div class="text-2xl font-bold text-yellow-600">{{ stats.pending_appeals }}</div></div>
+  </div>
+
+  <!-- Pending lister certificates -->
+  <section class="mb-12">
+    <h2 class="text-xl font-bold mb-4">Pending Lister Certificates</h2>
+    {% if pending_docs|length == 0 %}
+      <p class="text-sm text-muted-foreground">Nothing waiting for review.</p>
+    {% else %}
+      <div class="bg-card border border-border rounded-xl overflow-hidden">
+        <table class="w-full text-sm">
+          <thead class="bg-muted/40 text-left text-muted-foreground"><tr>
+            <th class="px-4 py-3 font-medium">Name</th><th class="px-4 py-3 font-medium">Email</th>
+            <th class="px-4 py-3 font-medium">Document</th><th class="px-4 py-3 font-medium">Submitted</th>
+            <th class="px-4 py-3 font-medium">Actions</th>
+          </tr></thead>
+          <tbody>
+            {% for d in pending_docs %}
+              <tr class="border-t border-border">
+                <td class="px-4 py-3 font-medium">{{ d['name'] }}</td>
+                <td class="px-4 py-3 text-muted-foreground">{{ d['email'] }}</td>
+                <td class="px-4 py-3"><a href="{{ url_for('static', filename=d['file_path'].split('static/')[-1]) }}" target="_blank" class="text-primary hover:underline">{{ d['file_name'] }}</a></td>
+                <td class="px-4 py-3 text-xs text-muted-foreground">{{ d['created_at'][:10] if d['created_at'] }}</td>
+                <td class="px-4 py-3 flex gap-2">
+                  <form method="post" action="{{ url_for('verify_user_kyc', user_id=d['id']) }}"><button class="text-xs font-medium bg-green-600 text-white rounded-lg px-3 py-1.5 hover:opacity-90">Approve</button></form>
+                  <form method="post" action="{{ url_for('reject_user_kyc', user_id=d['id']) }}"><button class="text-xs font-medium bg-destructive text-white rounded-lg px-3 py-1.5 hover:opacity-90">Reject</button></form>
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    {% endif %}
+  </section>
+
+  <!-- Pending listings -->
+  <section class="mb-12">
+    <h2 class="text-xl font-bold mb-4">Pending Property Listings</h2>
+    {% if pending_listings|length == 0 %}
+      <p class="text-sm text-muted-foreground">Nothing waiting for review.</p>
+    {% else %}
+      <div class="bg-card border border-border rounded-xl overflow-hidden">
+        <table class="w-full text-sm">
+          <thead class="bg-muted/40 text-left text-muted-foreground"><tr>
+            <th class="px-4 py-3 font-medium">Title</th><th class="px-4 py-3 font-medium">Owner</th>
+            <th class="px-4 py-3 font-medium">Status</th><th class="px-4 py-3 font-medium">Actions</th>
+          </tr></thead>
+          <tbody>
+            {% for l in pending_listings %}
+              <tr class="border-t border-border">
+                <td class="px-4 py-3"><a href="{{ url_for('listing_detail', listing_id=l['id']) }}" class="font-medium hover:text-primary">{{ l['title'] }}</a></td>
+                <td class="px-4 py-3 text-muted-foreground">{{ l['owner_name'] }}</td>
+                <td class="px-4 py-3"><span class="text-xs px-2 py-0.5 rounded-full bg-yellow-50 text-yellow-700">{{ l['verification_status'] }}</span></td>
+                <td class="px-4 py-3 flex gap-2">
+                  <form method="post" action="{{ url_for('approve_listing', listing_id=l['id']) }}"><button class="text-xs font-medium bg-green-600 text-white rounded-lg px-3 py-1.5 hover:opacity-90">Approve</button></form>
+                  <form method="post" action="{{ url_for('reject_listing', listing_id=l['id']) }}"><button class="text-xs font-medium bg-destructive text-white rounded-lg px-3 py-1.5 hover:opacity-90">Reject</button></form>
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    {% endif %}
+  </section>
+
+  <!-- Appeals -->
+  <section class="mb-12">
+    <h2 class="text-xl font-bold mb-4">Review Requests (Appeals)</h2>
+    {% if appeals|length == 0 %}
+      <p class="text-sm text-muted-foreground">No pending appeals.</p>
+    {% else %}
+      <div class="space-y-3">
+        {% for a in appeals %}
+          <div class="bg-card border border-border rounded-xl p-4">
+            <p class="text-sm font-medium mb-1">{{ a['user_name'] or a['email'] }} <span class="text-xs text-muted-foreground">({{ a['email'] }})</span></p>
+            <p class="text-sm text-muted-foreground mb-3">{{ a['message'] }}</p>
+            <form method="post" action="{{ url_for('resolve_appeal', appeal_id=a['id']) }}" class="flex flex-wrap gap-2 items-center">
+              <input type="text" name="response" placeholder="Optional note to user" class="h-9 px-3 rounded-md border border-border text-sm flex-1 min-w-[160px]" />
+              <button type="submit" name="decision" value="approve" class="text-xs font-medium bg-green-600 text-white rounded-lg px-3 py-1.5 hover:opacity-90">Approve &amp; Restore</button>
+              <button type="submit" name="decision" value="deny" class="text-xs font-medium bg-destructive text-white rounded-lg px-3 py-1.5 hover:opacity-90">Deny</button>
+            </form>
+          </div>
+        {% endfor %}
+      </div>
+    {% endif %}
+  </section>
+
+  <!-- All users -->
+  <section class="mb-12">
+    <h2 class="text-xl font-bold mb-4">All Users</h2>
+    <div class="bg-card border border-border rounded-xl overflow-x-auto">
+      <table class="w-full text-sm">
+        <thead class="bg-muted/40 text-left text-muted-foreground"><tr>
+          <th class="px-4 py-3 font-medium">Name</th><th class="px-4 py-3 font-medium">Role</th>
+          <th class="px-4 py-3 font-medium">KYC</th><th class="px-4 py-3 font-medium">Status</th>
+          <th class="px-4 py-3 font-medium">Actions</th>
+        </tr></thead>
+        <tbody>
+          {% for u in all_users %}
+            <tr class="border-t border-border">
+              <td class="px-4 py-3"><p class="font-medium">{{ u['name'] }}</p><p class="text-xs text-muted-foreground">{{ u['email'] }}</p></td>
+              <td class="px-4 py-3 text-muted-foreground">{{ 'Lister' if u['role'] == 'seller' else 'Buyer' }}</td>
+              <td class="px-4 py-3"><span class="text-xs px-2 py-0.5 rounded-full {{ 'bg-green-50 text-green-700' if u['kyc_status'] == 'verified' else 'bg-yellow-50 text-yellow-700' }}">{{ u['kyc_status'] }}</span></td>
+              <td class="px-4 py-3">
+                <span class="text-xs px-2 py-0.5 rounded-full {{ 'bg-green-50 text-green-700' if u['account_status'] == 'active' else ('bg-red-50 text-red-700' if u['account_status'] == 'banned' else 'bg-yellow-50 text-yellow-700') }}">{{ u['account_status'] }}</span>
+              </td>
+              <td class="px-4 py-3">
+                <div class="flex gap-2 flex-wrap items-center">
+                  {% if u['account_status'] == 'active' %}
+                    <form method="post" action="{{ url_for('suspend_user', user_id=u['id']) }}" class="flex gap-1">
+                      <input type="text" name="reason" placeholder="Reason" class="h-8 px-2 rounded-md border border-border text-xs w-28" />
+                      <button class="text-xs font-medium bg-yellow-500 text-white rounded-lg px-3 py-1.5 hover:opacity-90">Suspend</button>
+                    </form>
+                    <form method="post" action="{{ url_for('ban_user', user_id=u['id']) }}" class="flex gap-1">
+                      <input type="text" name="reason" placeholder="Reason" class="h-8 px-2 rounded-md border border-border text-xs w-28" />
+                      <button class="text-xs font-medium bg-destructive text-white rounded-lg px-3 py-1.5 hover:opacity-90">Ban</button>
+                    </form>
+                  {% else %}
+                    <form method="post" action="{{ url_for('restore_user', user_id=u['id']) }}"><button class="text-xs font-medium bg-green-600 text-white rounded-lg px-3 py-1.5 hover:opacity-90">Restore</button></form>
+                  {% endif %}
+                </div>
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- All listings -->
+  <section>
+    <h2 class="text-xl font-bold mb-4">All Listings</h2>
+    <div class="bg-card border border-border rounded-xl overflow-x-auto">
+      <table class="w-full text-sm">
+        <thead class="bg-muted/40 text-left text-muted-foreground"><tr>
+          <th class="px-4 py-3 font-medium">Title</th><th class="px-4 py-3 font-medium">Owner</th>
+          <th class="px-4 py-3 font-medium">Status</th><th class="px-4 py-3 font-medium">Actions</th>
+        </tr></thead>
+        <tbody>
+          {% for l in all_listings %}
+            <tr class="border-t border-border">
+              <td class="px-4 py-3"><a href="{{ url_for('listing_detail', listing_id=l['id']) }}" class="font-medium hover:text-primary">{{ l['title'] }}</a></td>
+              <td class="px-4 py-3 text-muted-foreground">{{ l['owner_name'] }}</td>
+              <td class="px-4 py-3"><span class="text-xs px-2 py-0.5 rounded-full {{ 'bg-green-50 text-green-700' if l['status'] == 'active' else 'bg-yellow-50 text-yellow-700' }}">{{ l['status'] }}</span></td>
+              <td class="px-4 py-3 flex gap-2">
+                {% if l['status'] == 'active' %}
+                  <form method="post" action="{{ url_for('suspend_listing', listing_id=l['id']) }}"><button class="text-xs font-medium bg-yellow-500 text-white rounded-lg px-3 py-1.5 hover:opacity-90">Suspend</button></form>
+                {% else %}
+                  <form method="post" action="{{ url_for('restore_listing', listing_id=l['id']) }}"><button class="text-xs font-medium bg-green-600 text-white rounded-lg px-3 py-1.5 hover:opacity-90">Restore</button></form>
+                {% endif %}
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </section>
+</div>
+{% endblock %}

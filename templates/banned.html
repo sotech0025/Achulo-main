@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+{% block title %}Account Suspended — {{ app_name }}{% endblock %}
+{% block content %}
+<div class="flex-1 flex items-center justify-center py-16 px-4">
+  <div class="w-full max-w-md bg-card border border-destructive/30 rounded-2xl shadow-sm p-8 text-center">
+    <div class="inline-flex items-center justify-center h-14 w-14 rounded-full bg-red-50 text-destructive mb-4 text-2xl">⛔</div>
+    <h1 class="text-2xl font-serif font-bold mb-2">Your Account Has Been Banned</h1>
+    <p class="text-muted-foreground text-sm mb-4">
+      {% if reason %}Reason given by our team: <span class="text-foreground font-medium">{{ reason }}</span>{% else %}This account was banned for a violation of our platform policies.{% endif %}
+    </p>
+    <p class="text-muted-foreground text-sm mb-6">
+      If you believe this was a mistake, you can request a review from our team.
+    </p>
+    <a href="{{ url_for('appeal', email=user_email) }}" class="inline-flex items-center justify-center w-full h-11 rounded-lg bg-primary text-primary-foreground font-medium hover:opacity-90 transition">
+      Request a review
+    </a>
+  </div>
+</div>
+{% endblock %}

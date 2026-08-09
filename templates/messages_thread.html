@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+{% block title %}Chat with {{ other['name'] }} — {{ app_name }}{% endblock %}
+{% block content %}
+<div class="container mx-auto px-4 md:px-8 max-w-2xl py-10">
+  <a href="{{ url_for('messages_inbox') }}" class="text-sm text-muted-foreground hover:text-foreground">← All conversations</a>
+
+  <div class="flex items-center justify-between mt-4 mb-6">
+    <div>
+      <h1 class="text-2xl font-serif font-bold">{{ other['name'] }}</h1>
+      <p class="text-xs text-muted-foreground">{{ 'Listing Agent' if other['role'] == 'seller' else 'Buyer' }}
+        {% if other['role'] == 'seller' %}
+          &middot; <span class="{{ 'text-green-600' if other['kyc_status'] == 'verified' else 'text-yellow-600' }}">{{ 'Verified' if other['kyc_status'] == 'verified' else 'Unverified' }}</span>
+        {% endif %}
+      </p>
+    </div>
+    {% if listing %}
+      <a href="{{ url_for('listing_detail', listing_id=listing['id']) }}" class="text-sm font-medium text-primary hover:underline">View listing →</a>
+    {% endif %}
+  </div>
+
+  <div class="bg-card border border-border rounded-2xl p-5 h-[420px] overflow-y-auto flex flex-col gap-3 mb-4">
+    {% if thread|length == 0 %}
+      <p class="text-sm text-muted-foreground m-auto">No messages yet — say hello 👋</p>
+    {% endif %}
+    {% for m in thread %}
+      <div class="max-w-[75%] {{ 'self-end bg-primary text-primary-foreground' if m['sender_id'] == current_user['id'] else 'self-start bg-muted' }} rounded-2xl px-4 py-2 text-sm">
+        {{ m['body'] }}
+        <div class="text-[10px] opacity-70 mt-1">{{ m['created_at'][:16].replace('T', ' ') }}</div>
+      </div>
+    {% endfor %}
+  </div>
+
+  <form method="post" class="flex gap-2">
+    {% if listing %}<input type="hidden" name="listing_id" value="{{ listing['id'] }}" />{% endif %}
+    <input type="text" name="body" placeholder="Type a message..." required autocomplete="off"
+           class="flex-1 h-11 px-3 rounded-lg border border-border focus:outline-none focus:ring-2 focus:ring-primary" />
+    <button type="submit" class="h-11 px-5 rounded-lg bg-primary text-primary-foreground font-medium hover:opacity-90 transition">Send</button>
+  </form>
+</div>
+{% endblock %}

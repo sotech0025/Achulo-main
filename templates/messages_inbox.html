@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+{% block title %}Messages — {{ app_name }}{% endblock %}
+{% block content %}
+<div class="container mx-auto px-4 md:px-8 max-w-3xl py-10">
+  <h1 class="text-3xl font-serif font-bold mb-8">Messages</h1>
+
+  {% if partners|length == 0 %}
+    <div class="text-center py-16 bg-muted/30 rounded-2xl border border-border">
+      <h3 class="text-lg font-medium mb-2">No conversations yet</h3>
+      <p class="text-sm text-muted-foreground">Message a lister from a property page to start a conversation.</p>
+    </div>
+  {% else %}
+    <div class="bg-card border border-border rounded-xl overflow-hidden divide-y divide-border">
+      {% for p in partners %}
+        <a href="{{ url_for('messages_thread', other_id=p['id']) }}" class="flex items-center justify-between px-5 py-4 hover:bg-muted/20 transition-colors">
+          <div>
+            <p class="font-medium">{{ p['name'] }} <span class="text-xs text-muted-foreground">({{ 'Lister' if p['role'] == 'seller' else 'Buyer' }})</span></p>
+            <p class="text-sm text-muted-foreground truncate max-w-md">{{ p['last_message'] }}</p>
+          </div>
+          <span class="text-xs text-muted-foreground">{{ p['last_at'][:10] if p['last_at'] else '' }}</span>
+        </a>
+      {% endfor %}
+    </div>
+  {% endif %}
+</div>
+{% endblock %}

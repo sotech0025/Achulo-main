@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+{% block title %}Request a Review — {{ app_name }}{% endblock %}
+{% block content %}
+<div class="flex-1 flex items-center justify-center py-16 px-4">
+  <div class="w-full max-w-md bg-card border border-border rounded-2xl shadow-sm p-8">
+    <h1 class="text-2xl font-serif font-bold mb-2">Request a Review</h1>
+    <p class="text-muted-foreground text-sm mb-6">Tell us why you think your account status should be reconsidered. Our admin team reviews every request.</p>
+
+    <form method="post" class="space-y-4">
+      <div>
+        <label class="text-sm font-medium block mb-1">Account email</label>
+        <input type="email" name="email" value="{{ prefill_email or (current_user['email'] if current_user else '') }}" required
+               class="w-full h-11 px-3 rounded-md border border-border focus:outline-none focus:ring-2 focus:ring-primary" />
+      </div>
+      <div>
+        <label class="text-sm font-medium block mb-1">Your message</label>
+        <textarea name="message" rows="5" required placeholder="Explain your situation..."
+                  class="w-full px-3 py-2 rounded-md border border-border focus:outline-none focus:ring-2 focus:ring-primary"></textarea>
+      </div>
+      <button type="submit" class="w-full h-11 rounded-lg bg-primary text-primary-foreground font-medium hover:opacity-90 transition">Submit Request</button>
+    </form>
+  </div>
+</div>
+{% endblock %}
