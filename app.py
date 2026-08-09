@@ -270,6 +270,27 @@ def init_db():
 if not os.path.exists(DB_PATH):
     init_db()
 
+def seed_admin():
+    """Ensure an admin-eligible account exists so ADMIN_EMAIL / ADMIN_PASSWORD actually work.
+    Admin rights are granted at login when the logged-in email matches ADMIN_EMAIL —
+    this just makes sure that account exists instead of leaving it to be registered manually."""
+    db = get_db()
+    existing = db.execute('SELECT id FROM users WHERE email = ?', (ADMIN_EMAIL,)).fetchone()
+    if not existing:
+        now = datetime.now().isoformat()
+        db.execute(
+            """INSERT INTO users
+            (name, email, phone, password_hash, role, kyc_status, kyc_verified_at,
+             account_status, country, created_at, updated_at, accepted_terms, accepted_privacy)
+            VALUES (?, ?, ?, ?, 'buyer', 'verified', ?, 'active', 'Nigeria', ?, ?, 1, 1)""",
+            ('Admin', ADMIN_EMAIL, '0000000000', hash_password(ADMIN_PASSWORD), now, now, now)
+        )
+        db.commit()
+    db.close()
+
+with app.app_context():
+    seed_admin()
+
 # ---------------------------------------------------------------- AUTHENTICATION DECORATORS
 def login_required(f):
     @wraps(f)
