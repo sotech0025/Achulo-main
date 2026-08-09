@@ -27,8 +27,8 @@
 
   <h2 class="text-xl font-bold mb-4">Latest Verified Properties</h2>
   {% if listings|length == 0 %}
-    <div class="text-center py-16 bg-muted/30 rounded-2xl border border-border">
-      <p class="text-sm text-muted-foreground">No active listings yet — check back soon.</p>
+    <div class="text-center py-24 bg-muted/30 rounded-lg border border-dashed border-border">
+      <p class="text-sm text-muted-foreground">Nothing's been approved yet in your area — new listings show up here as soon as an admin verifies them.</p>
     </div>
   {% else %}
     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">

@@ -1,21 +1,19 @@
 {% extends "base.html" %}
+{% import "_icons.html" as icons %}
 {% block title %}Home — {{ app_name }}{% endblock %}
 {% block content %}
 
-<section class="bg-primary text-primary-foreground py-14 md:py-24">
+<section class="bg-primary text-primary-foreground py-14 md:py-20">
   <div class="container mx-auto px-4 md:px-8 text-center max-w-4xl">
-    <div class="inline-flex items-center gap-2 bg-white/10 border border-white/20 rounded-full px-4 py-1.5 text-sm font-medium mb-6">
-      <span class="inline-block h-2 w-2 rounded-full bg-green-400 animate-pulse"></span>
-      Verified listings only — zero tolerance for scams
-    </div>
     <h1 class="text-4xl md:text-6xl font-serif font-bold mb-5 leading-tight">
       Find a home you can<br class="hidden md:block" /> trust.
     </h1>
     <p class="text-white/75 text-lg md:text-xl mb-10 max-w-2xl mx-auto">
-      ACHULO verifies every property and agent so you can rent with confidence. No scams, no hidden fees.
+      Every property on ACHULO is listed by an agent whose government ID has been checked by our team —
+      not just self-declared on a form.
     </p>
 
-    <form method="get" action="{{ url_for('home') }}" class="flex w-full max-w-3xl mx-auto bg-background rounded-xl shadow-2xl p-3 gap-3 flex-wrap md:flex-nowrap items-center">
+    <form method="get" action="{{ url_for('home') }}" class="flex w-full max-w-3xl mx-auto bg-background rounded-xl shadow-lg p-3 gap-3 flex-wrap md:flex-nowrap items-center">
       <input type="text" name="location" value="{{ location or '' }}" placeholder="Search by city or area (e.g. Lekki)"
              class="flex-1 min-w-[160px] h-11 px-3 rounded-md text-foreground border border-border focus:outline-none focus:ring-2 focus:ring-primary" />
 
@@ -65,31 +63,40 @@
     </div>
   </div>
 
-  <div class="text-center py-24 bg-muted/30 rounded-2xl border border-border">
-    <h3 class="text-lg font-semibold mb-1">No listings yet</h3>
-    <p class="text-muted-foreground text-sm mb-4">Be the first to list a property. Become a seller today!</p>
+  <div class="text-center py-24 bg-muted/30 rounded-lg border border-dashed border-border">
+    <h3 class="text-lg font-semibold mb-1">No listings match this search yet</h3>
+    <p class="text-muted-foreground text-sm mb-4">Listings appear here once an admin approves them. Own a property to rent out?</p>
     {% if current_user %}
       <a href="{{ url_for('dashboard_listing_new') }}" class="inline-block mt-4 text-sm font-medium border border-border rounded-lg px-4 py-1.5 hover:border-primary hover:text-primary transition">Create Listing</a>
     {% else %}
-      <a href="{{ url_for('register') }}" class="inline-block mt-4 text-sm font-medium border border-border rounded-lg px-4 py-1.5 hover:border-primary hover:text-primary transition">Register as Seller</a>
+      <a href="{{ url_for('register') }}" class="inline-block mt-4 text-sm font-medium border border-border rounded-lg px-4 py-1.5 hover:border-primary hover:text-primary transition">Register as a Listing Agent</a>
     {% endif %}
   </div>
 </div>
 
-<section class="bg-primary/5 border-t border-border py-10 mt-6">
+<section class="border-t border-border py-10 mt-6">
   <div class="container mx-auto px-4 md:px-8 max-w-5xl">
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 text-center">
-      <div class="px-4">
-        <h4 class="font-bold text-primary mb-1">NIN-Verified Agents</h4>
-        <p class="text-sm text-muted-foreground leading-relaxed">Every listing owner passes biometric identity verification before going live.</p>
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+      <div class="flex gap-3">
+        {{ icons.shield_check('h-5 w-5 text-primary shrink-0 mt-0.5') }}
+        <div>
+          <h4 class="font-semibold mb-1">ID-checked agents</h4>
+          <p class="text-sm text-muted-foreground leading-relaxed">Listing agents submit a government certificate that our team reviews before their account is trusted.</p>
+        </div>
       </div>
-      <div class="px-4">
-        <h4 class="font-bold text-primary mb-1">48-Hour Escrow</h4>
-        <p class="text-sm text-muted-foreground leading-relaxed">Your payment is held securely until you confirm the property meets expectations.</p>
+      <div class="flex gap-3">
+        {{ icons.lock('h-5 w-5 text-primary shrink-0 mt-0.5') }}
+        <div>
+          <h4 class="font-semibold mb-1">Payment held in escrow</h4>
+          <p class="text-sm text-muted-foreground leading-relaxed">Funds stay with ACHULO until you've confirmed the property matches the listing.</p>
+        </div>
       </div>
-      <div class="px-4">
-        <h4 class="font-bold text-primary mb-1">Anti-Scam AI</h4>
-        <p class="text-sm text-muted-foreground leading-relaxed">Video authenticity checks and scam-flag systems protect every search result.</p>
+      <div class="flex gap-3">
+        {{ icons.clock('h-5 w-5 text-primary shrink-0 mt-0.5') }}
+        <div>
+          <h4 class="font-semibold mb-1">Reports reviewed by a person</h4>
+          <p class="text-sm text-muted-foreground leading-relaxed">Flagged listings and accounts go to an admin, not an automated takedown.</p>
+        </div>
       </div>
     </div>
   </div>

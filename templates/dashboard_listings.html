@@ -8,8 +8,9 @@
   </div>
 
   {% if listings|length == 0 %}
-    <div class="text-center py-16 bg-muted/30 rounded-2xl border border-border">
-      <h3 class="text-lg font-medium mb-2">No listings yet</h3>
+    <div class="text-center py-16 border border-border rounded-lg">
+      <h3 class="text-lg font-medium mb-1">You haven't listed a property yet</h3>
+      <p class="text-sm text-muted-foreground mb-4">Add your first one — it'll need admin approval before buyers can see it.</p>
       <a href="{{ url_for('dashboard_listing_new') }}" class="inline-block mt-2 text-sm font-medium bg-primary text-primary-foreground rounded-lg px-4 py-2 hover:opacity-90 transition">+ New Listing</a>
     </div>
   {% else %}
