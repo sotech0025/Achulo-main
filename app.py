@@ -845,12 +845,15 @@ def upload_listing_images(listing_id):
 @login_required
 @seller_required
 def dashboard_listing_edit(listing_id):
-    """Edit an existing listing"""
+    """Edit an existing listing. Owners can edit their own; admin can edit any."""
     db = get_db()
-    listing = db.execute(
-        'SELECT * FROM listings WHERE id = ? AND owner_id = ?',
-        (listing_id, session['user_id'])
-    ).fetchone()
+    if session.get('is_admin'):
+        listing = db.execute('SELECT * FROM listings WHERE id = ?', (listing_id,)).fetchone()
+    else:
+        listing = db.execute(
+            'SELECT * FROM listings WHERE id = ? AND owner_id = ?',
+            (listing_id, session['user_id'])
+        ).fetchone()
 
     if not listing:
         abort(404)
@@ -888,7 +891,7 @@ def dashboard_listing_edit(listing_id):
         db.commit()
         log_action(session['user_id'], 'listing_updated', 'listing', listing_id)
         flash('Listing updated successfully.', 'success')
-        return redirect(url_for('dashboard_listings'))
+        return redirect(url_for('admin_dashboard') if session.get('is_admin') and listing['owner_id'] != session['user_id'] else url_for('dashboard_listings'))
 
     return render_template('dashboard_listing_new.html', listing=listing)
 
@@ -897,10 +900,13 @@ def dashboard_listing_edit(listing_id):
 @seller_required
 def dashboard_listing_delete(listing_id):
     db = get_db()
-    listing = db.execute(
-        'SELECT * FROM listings WHERE id = ? AND owner_id = ?',
-        (listing_id, session['user_id'])
-    ).fetchone()
+    if session.get('is_admin'):
+        listing = db.execute('SELECT * FROM listings WHERE id = ?', (listing_id,)).fetchone()
+    else:
+        listing = db.execute(
+            'SELECT * FROM listings WHERE id = ? AND owner_id = ?',
+            (listing_id, session['user_id'])
+        ).fetchone()
 
     if not listing:
         abort(404)
@@ -911,9 +917,11 @@ def dashboard_listing_delete(listing_id):
     db.execute('DELETE FROM listings WHERE id = ?', (listing_id,))
     db.commit()
 
-    log_action(session['user_id'], 'listing_deleted', 'listing', listing_id)
+    is_foreign = session.get('is_admin') and listing['owner_id'] != session['user_id']
+    log_action(session['user_id'], 'listing_deleted', 'listing', listing_id,
+               'Deleted by admin' if is_foreign else None)
     flash('Listing deleted.', 'success')
-    return redirect(url_for('dashboard_listings'))
+    return redirect(url_for('admin_dashboard') if is_foreign else url_for('dashboard_listings'))
 
 @app.route('/listing/<int:listing_id>')
 def listing_detail(listing_id):

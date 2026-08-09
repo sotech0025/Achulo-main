@@ -160,6 +160,10 @@
                 {% else %}
                   <form method="post" action="{{ url_for('restore_listing', listing_id=l['id']) }}"><button class="text-xs font-medium bg-green-600 text-white rounded-lg px-3 py-1.5 hover:opacity-90">Restore</button></form>
                 {% endif %}
+                <a href="{{ url_for('dashboard_listing_edit', listing_id=l['id']) }}" class="text-xs font-medium border border-border rounded-lg px-3 py-1.5 hover:bg-muted/30 transition">Edit</a>
+                <form method="post" action="{{ url_for('dashboard_listing_delete', listing_id=l['id']) }}" onsubmit="return confirm('Permanently delete this listing? This cannot be undone.');">
+                  <button class="text-xs font-medium bg-destructive text-white rounded-lg px-3 py-1.5 hover:opacity-90">Delete</button>
+                </form>
               </td>
             </tr>
           {% endfor %}
