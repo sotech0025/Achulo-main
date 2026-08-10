@@ -1,133 +1,109 @@
-{% extends "base_enhanced.html" %}
-
-{% block title %}Terms of Service - ACHULO{% endblock %}
-
+{% extends "base.html" %}
+{% block title %}Terms of Service — {{ app_name }}{% endblock %}
 {% block content %}
-<div class="container my-5">
-    <div class="row">
-        <div class="col-lg-8 mx-auto">
-            <h1 class="mb-4"><i class="fas fa-file-contract text-primary"></i> Terms of Service</h1>
-            
-            <div class="card border-0 shadow-sm mb-4">
-                <div class="card-body p-4">
-                    <p class="text-muted">Last Updated: August 2024</p>
-                    
-                    <h3 class="mt-4">1. Acceptance of Terms</h3>
-                    <p>By accessing and using ACHULO (the "Platform"), you accept and agree to be bound by the terms and provision of this agreement. If you do not agree to abide by the above, please do not use this service.</p>
-                    
-                    <h3 class="mt-4">2. User Accounts</h3>
-                    <p><strong>Age Requirement:</strong> You must be at least 18 years old to create an account.</p>
-                    <p><strong>Account Responsibility:</strong> You are responsible for maintaining the confidentiality of your password and username. You agree to accept responsibility for all activities that occur under your account.</p>
-                    <p><strong>Accuracy of Information:</strong> You agree to provide accurate, current, and complete information during registration. False or misleading information may result in account suspension.</p>
-                    
-                    <h3 class="mt-4">3. User Types and Obligations</h3>
-                    
-                    <h5>Buyers</h5>
-                    <ul>
-                        <li>Must provide accurate contact information</li>
-                        <li>Are responsible for verifying property details before engagement</li>
-                        <li>Must not engage in any fraudulent transaction attempts</li>
-                        <li>Agree to complete KYC verification before making offers</li>
-                    </ul>
-                    
-                    <h5>Sellers/Listing Agents</h5>
-                    <ul>
-                        <li>Must provide authentic documentation for properties listed</li>
-                        <li>Are fully responsible for the accuracy of property information</li>
-                        <li>Must not post misleading images or false descriptions</li>
-                        <li>Must submit required documents for verification within 7 days</li>
-                        <li>Agree to hold valid licenses and certifications as a real estate agent</li>
-                    </ul>
-                    
-                    <h3 class="mt-4">4. Prohibited Activities</h3>
-                    <p>You agree NOT to use the Platform to:</p>
-                    <ul>
-                        <li>Post fraudulent or misrepresented property listings</li>
-                        <li>Engage in any unlawful or illegal transaction</li>
-                        <li>Harass, threaten, or intimidate other users</li>
-                        <li>Attempt to gain unauthorized access to the Platform</li>
-                        <li>Create multiple accounts to circumvent security measures</li>
-                        <li>Use automated tools to scrape or harvest user data</li>
-                        <li>Engage in money laundering or terrorist financing</li>
-                        <li>Post content that is sexually explicit, violent, or hateful</li>
-                        <li>Violate any local, state, national, or international law</li>
-                    </ul>
-                    
-                    <h3 class="mt-4">5. KYC and Identity Verification</h3>
-                    <p>ACHULO complies with Know Your Customer (KYC) regulations. All users must:</p>
-                    <ul>
-                        <li>Submit valid identification documents (National ID, Passport, Voter's Card, Driver's License)</li>
-                        <li>Provide biometric verification when requested</li>
-                        <li>Submit NIN, BVN, or CAC for business accounts</li>
-                        <li>Allow ACHULO to verify information with relevant authorities</li>
-                        <li>Respond to verification requests within 7 days</li>
-                    </ul>
-                    
-                    <h3 class="mt-4">6. Property Listings</h3>
-                    <p><strong>Verification Process:</strong> All listings must go through our verification process before publication.</p>
-                    <p><strong>Required Documents:</strong> Sellers must upload:</p>
-                    <ul>
-                        <li>Property Deed or Certificate of Occupancy</li>
-                        <li>Recent Tax Clearance Certificate</li>
-                        <li>Property Insurance Certificate (recommended)</li>
-                        <li>Valid Government-Issued ID</li>
-                    </ul>
-                    <p><strong>Delisting:</strong> ACHULO reserves the right to delist or suspend any listing that violates our terms or appears fraudulent.</p>
-                    
-                    <h3 class="mt-4">7. Transactions and Escrow</h3>
-                    <p>All transactions on ACHULO are protected by our escrow service. Funds are held securely until both parties confirm transaction completion. ACHULO does not process payments directly but facilitates secure transfer between parties.</p>
-                    
-                    <h3 class="mt-4">8. Dispute Resolution</h3>
-                    <p>In case of disputes between users, ACHULO provides mediation services. We will:</p>
-                    <ul>
-                        <li>Investigate claims within 10 business days</li>
-                        <li>Attempt resolution through mediation</li>
-                        <li>Escalate to legal authorities if necessary</li>
-                        <li>Protect evidence for investigation</li>
-                    </ul>
-                    
-                    <h3 class="mt-4">9. Reporting and Fraud Prevention</h3>
-                    <p>Users can report suspicious listings or users through our reporting system. Our security team reviews all reports and takes appropriate action including:</p>
-                    <ul>
-                        <li>Account suspension</li>
-                        <li>Listing removal</li>
-                        <li>Referral to law enforcement</li>
-                        <li>Ban from the Platform</li>
-                    </ul>
-                    
-                    <h3 class="mt-4">10. Intellectual Property</h3>
-                    <p>All content on the Platform, including logos, images, and text, is owned by ACHULO or licensed partners. Unauthorized reproduction is prohibited.</p>
-                    
-                    <h3 class="mt-4">11. Limitation of Liability</h3>
-                    <p>ACHULO is provided "as is" without warranties. We are not liable for:</p>
-                    <ul>
-                        <li>Direct, indirect, or consequential damages</li>
-                        <li>Loss of data or revenue</li>
-                        <li>Third-party actions or fraud</li>
-                        <li>Service interruptions</li>
-                    </ul>
-                    
-                    <h3 class="mt-4">12. Modification of Terms</h3>
-                    <p>ACHULO reserves the right to modify these terms at any time. Changes become effective immediately upon posting. Continued use of the Platform constitutes acceptance of modified terms.</p>
-                    
-                    <h3 class="mt-4">13. Termination</h3>
-                    <p>We may terminate your account immediately if you violate these terms. You may request account termination at any time by contacting support.</p>
-                    
-                    <h3 class="mt-4">14. Contact Us</h3>
-                    <p>For questions about these Terms of Service, please contact:</p>
-                    <ul>
-                        <li><strong>Email:</strong> legal@achulo.com</li>
-                        <li><strong>Phone:</strong> +234 (0) 123 456 7890</li>
-                        <li><strong>Address:</strong> Lagos, Nigeria</li>
-                    </ul>
-                </div>
-            </div>
-            
-            <div class="alert alert-info">
-                <i class="fas fa-info-circle"></i>
-                <strong>Important:</strong> By registering on ACHULO, you confirm that you have read, understood, and agree to be bound by these Terms of Service and our Privacy Policy.
-            </div>
-        </div>
+<div class="container mx-auto px-4 md:px-8 max-w-3xl py-12">
+  <h1 class="text-3xl font-serif font-bold mb-1">Terms of Service</h1>
+  <p class="text-sm text-muted-foreground mb-8">Last updated: August 2026</p>
+
+  <div class="prose-legal space-y-8 text-sm leading-relaxed text-foreground">
+
+    <p>
+      These Terms of Service ("Terms") govern your access to and use of ACHULO, a platform that connects
+      people looking to rent or buy property ("Buyers") with individuals and agents listing property
+      ("Listing Agents"). By creating an account or using ACHULO in any way, you agree to these Terms.
+      If you don't agree, please don't use the platform.
+    </p>
+
+    <section>
+      <h2 class="text-lg font-bold mb-2">1. Who can use ACHULO</h2>
+      <p>You must be at least 18 years old and able to form a binding contract under Nigerian law to create an
+        account. When you register, the information you provide — your name, contact details, and, for
+        Listing Agents, your government certificate/ID — must be accurate and belong to you. Accounts created
+        with false information may be suspended or banned.</p>
+    </section>
+
+    <section>
+      <h2 class="text-lg font-bold mb-2">2. Two kinds of accounts</h2>
+      <p><strong>Buyers</strong> can browse listings, message Listing Agents, and place funds in escrow toward
+        a property. Buyers are responsible for reviewing a listing carefully and asking questions before
+        committing to a payment.</p>
+      <p class="mt-2"><strong>Listing Agents</strong> can publish, edit, and manage property listings. Before
+        a Listing Agent account is trusted on the platform, we require a government-issued certificate or ID,
+        which our team reviews. A Listing Agent is responsible for making sure every listing they publish is
+        accurate, that they have the right to list the property, and that photos and descriptions aren't
+        misleading.</p>
+    </section>
+
+    <section>
+      <h2 class="text-lg font-bold mb-2">3. Verification & admin review</h2>
+      <p>We review the certificate submitted at registration before a Listing Agent's account is marked
+        verified, and we review individual listings before they go live. Verification reduces risk but is not
+        a guarantee — it does not certify legal title to a property, and Buyers should still take reasonable
+        steps (site visits, independent checks) before making a payment.</p>
+    </section>
+
+    <section>
+      <h2 class="text-lg font-bold mb-2">4. Escrow payments</h2>
+      <p>When a Buyer pays through ACHULO, funds are held in escrow rather than sent directly to the Listing
+        Agent. The Buyer is expected to confirm the property matches what was listed before funds are
+        released. We reserve the right to pause a release or investigate a transaction if either party
+        reports a problem.</p>
+    </section>
+
+    <section>
+      <h2 class="text-lg font-bold mb-2">5. Messaging</h2>
+      <p>Buyers and Listing Agents can message each other about a specific listing through the platform.
+        Please keep communication respectful and on-topic. Don't use messaging to send spam, harassment, or
+        content unrelated to a property inquiry.</p>
+    </section>
+
+    <section>
+      <h2 class="text-lg font-bold mb-2">6. What's not allowed</h2>
+      <ul class="list-disc pl-5 space-y-1">
+        <li>Listing a property you don't have the right to list, or that doesn't exist</li>
+        <li>Uploading a certificate, ID, or document that isn't genuinely yours</li>
+        <li>Misrepresenting a property's condition, price, or availability</li>
+        <li>Harassing, threatening, or attempting to defraud another user</li>
+        <li>Creating a second account to get around a suspension or ban</li>
+        <li>Scraping, reverse-engineering, or interfering with the platform's normal operation</li>
+      </ul>
+    </section>
+
+    <section>
+      <h2 class="text-lg font-bold mb-2">7. Reports, suspension & bans</h2>
+      <p>Any user can report a listing or account they believe is fraudulent or abusive. Our admin team
+        reviews reports individually — we don't take listings down or restrict accounts automatically. Depending
+        on what we find, an account may be suspended (temporarily restricted) or banned (blocked from logging
+        in). A banned user can submit a request for review, which an admin will personally consider.</p>
+    </section>
+
+    <section>
+      <h2 class="text-lg font-bold mb-2">8. Disclaimers</h2>
+      <p>ACHULO is a platform that connects Buyers and Listing Agents — we are not a party to any rental or
+        sale agreement between them, and we don't guarantee the accuracy of any listing. We provide the
+        platform "as is" and can't promise it will be error-free or uninterrupted at all times.</p>
+    </section>
+
+    <section>
+      <h2 class="text-lg font-bold mb-2">9. Changes to these Terms</h2>
+      <p>We may update these Terms as the platform evolves. If we make a material change, we'll update the
+        date at the top of this page. Continuing to use ACHULO after a change means you accept the updated
+        Terms.</p>
+    </section>
+
+    <section>
+      <h2 class="text-lg font-bold mb-2">10. Contact</h2>
+      <p>Questions about these Terms can be sent to <a href="mailto:legal@achulo.com" class="text-primary hover:underline">legal@achulo.com</a>.</p>
+    </section>
+
+    <div class="border-t border-border pt-6 mt-8">
+      <p class="text-xs text-muted-foreground">
+        This document is a general template and hasn't been reviewed by a lawyer. Before you publish it,
+        have it checked against Nigerian consumer-protection, data-protection, and real-estate regulations
+        relevant to your business.
+      </p>
     </div>
+
+  </div>
 </div>
 {% endblock %}

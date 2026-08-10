@@ -316,7 +316,7 @@ def seller_required(f):
         
         if not user or user['role'] != 'seller':
             flash('You must be a listing agent to access this page.', 'error')
-            abort(403)
+            return redirect(url_for('dashboard'))
         return f(*args, **kwargs)
     return decorated_function
 
@@ -340,7 +340,11 @@ def admin_required(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
         if 'is_admin' not in session or not session['is_admin']:
-            abort(403)
+            if 'user_id' not in session:
+                flash('Please log in first.', 'error')
+                return redirect(url_for('login'))
+            flash('That page is for admins only.', 'error')
+            return redirect(url_for('dashboard'))
         return f(*args, **kwargs)
     return decorated_function
 
@@ -756,7 +760,8 @@ def upload_listing_documents(listing_id):
     ).fetchone()
     
     if not listing:
-        abort(404)
+        flash('That listing could not be found — it may have already been removed.', 'error')
+        return redirect(url_for('dashboard_listings'))
     
     if 'documents' not in request.files:
         flash('No files selected.', 'error')
@@ -804,7 +809,8 @@ def upload_listing_images(listing_id):
     ).fetchone()
 
     if not listing:
-        abort(404)
+        flash('That listing could not be found — it may have already been removed.', 'error')
+        return redirect(url_for('dashboard_listings'))
 
     files = request.files.getlist('images')
     image_exts = {'jpg', 'jpeg', 'png'}
@@ -856,7 +862,8 @@ def dashboard_listing_edit(listing_id):
         ).fetchone()
 
     if not listing:
-        abort(404)
+        flash('That listing could not be found — it may have already been removed.', 'error')
+        return redirect(url_for('admin_dashboard') if session.get('is_admin') else url_for('dashboard_listings'))
 
     if request.method == 'POST':
         title = sanitize_input(request.form.get('title', ''))
@@ -909,7 +916,8 @@ def dashboard_listing_delete(listing_id):
         ).fetchone()
 
     if not listing:
-        abort(404)
+        flash('That listing could not be found — it may have already been removed.', 'error')
+        return redirect(url_for('admin_dashboard') if session.get('is_admin') else url_for('dashboard_listings'))
 
     db.execute('DELETE FROM listing_images WHERE listing_id = ?', (listing_id,))
     db.execute('DELETE FROM documents WHERE listing_id = ?', (listing_id,))
@@ -930,7 +938,8 @@ def listing_detail(listing_id):
     listing = db.execute('SELECT * FROM listings WHERE id = ?', (listing_id,)).fetchone()
     
     if not listing:
-        abort(404)
+        flash('That listing is no longer available — it may have been removed.', 'error')
+        return redirect(url_for('home'))
     
     owner = db.execute('SELECT id, name, phone, kyc_status, account_status FROM users WHERE id = ?', (listing['owner_id'],)).fetchone()
     images = db.execute('SELECT * FROM listing_images WHERE listing_id = ? ORDER BY id', (listing_id,)).fetchall()
@@ -943,7 +952,8 @@ def report_listing(listing_id):
     listing = db.execute('SELECT id FROM listings WHERE id = ?', (listing_id,)).fetchone()
     
     if not listing:
-        abort(404)
+        flash('That listing is no longer available.', 'error')
+        return redirect(url_for('home'))
     
     reporter_id = session.get('user_id')
     reason = sanitize_input(request.form.get('reason', ''))
@@ -1007,7 +1017,8 @@ def messages_thread(other_id):
     uid = session['user_id']
     other = db.execute('SELECT id, name, role, kyc_status FROM users WHERE id = ?', (other_id,)).fetchone()
     if not other:
-        abort(404)
+        flash('That user could not be found.', 'error')
+        return redirect(url_for('messages_inbox'))
 
     listing_id = request.args.get('listing_id', type=int)
 
@@ -1048,7 +1059,8 @@ def pay_listing(listing_id):
     db = get_db()
     listing = db.execute('SELECT * FROM listings WHERE id = ?', (listing_id,)).fetchone()
     if not listing:
-        abort(404)
+        flash('That listing is no longer available.', 'error')
+        return redirect(url_for('home'))
 
     tx_hash = secrets.token_hex(16)
     now = datetime.now().isoformat()
@@ -1155,7 +1167,8 @@ def verify_user_kyc(user_id):
     user = db.execute('SELECT * FROM users WHERE id = ?', (user_id,)).fetchone()
     
     if not user:
-        abort(404)
+        flash('That user could not be found.', 'error')
+        return redirect(url_for('admin_dashboard'))
     
     db.execute(
         """UPDATE users SET kyc_status = 'verified', kyc_verified_at = ? WHERE id = ?""",
@@ -1174,7 +1187,8 @@ def reject_user_kyc(user_id):
     db = get_db()
     user = db.execute('SELECT * FROM users WHERE id = ?', (user_id,)).fetchone()
     if not user:
-        abort(404)
+        flash('That user could not be found.', 'error')
+        return redirect(url_for('admin_dashboard'))
 
     db.execute("UPDATE users SET kyc_status = 'rejected' WHERE id = ?", (user_id,))
     db.commit()
@@ -1189,7 +1203,8 @@ def suspend_user(user_id):
     reason = sanitize_input(request.form.get('reason', 'Policy violation'))
     user = db.execute('SELECT * FROM users WHERE id = ?', (user_id,)).fetchone()
     if not user:
-        abort(404)
+        flash('That user could not be found.', 'error')
+        return redirect(url_for('admin_dashboard'))
 
     db.execute(
         "UPDATE users SET account_status = 'suspended', ban_reason = ?, status_updated_at = ? WHERE id = ?",
@@ -1207,7 +1222,8 @@ def ban_user(user_id):
     reason = sanitize_input(request.form.get('reason', 'Policy violation'))
     user = db.execute('SELECT * FROM users WHERE id = ?', (user_id,)).fetchone()
     if not user:
-        abort(404)
+        flash('That user could not be found.', 'error')
+        return redirect(url_for('admin_dashboard'))
 
     db.execute(
         "UPDATE users SET account_status = 'banned', ban_reason = ?, status_updated_at = ? WHERE id = ?",
@@ -1224,7 +1240,8 @@ def restore_user(user_id):
     db = get_db()
     user = db.execute('SELECT * FROM users WHERE id = ?', (user_id,)).fetchone()
     if not user:
-        abort(404)
+        flash('That user could not be found.', 'error')
+        return redirect(url_for('admin_dashboard'))
 
     db.execute(
         "UPDATE users SET account_status = 'active', ban_reason = NULL, status_updated_at = ? WHERE id = ?",
@@ -1242,7 +1259,8 @@ def approve_listing(listing_id):
     listing = db.execute('SELECT * FROM listings WHERE id = ?', (listing_id,)).fetchone()
     
     if not listing:
-        abort(404)
+        flash('That listing could not be found.', 'error')
+        return redirect(url_for('admin_dashboard'))
     
     db.execute(
         """UPDATE listings SET verification_status = 'verified', verified_at = ?, 
@@ -1263,7 +1281,8 @@ def reject_listing(listing_id):
     reason = sanitize_input(request.form.get('reason', ''))
     listing = db.execute('SELECT * FROM listings WHERE id = ?', (listing_id,)).fetchone()
     if not listing:
-        abort(404)
+        flash('That listing could not be found.', 'error')
+        return redirect(url_for('admin_dashboard'))
 
     db.execute(
         "UPDATE listings SET verification_status = 'rejected', status = 'rejected', updated_at = ? WHERE id = ?",
@@ -1280,7 +1299,8 @@ def suspend_listing(listing_id):
     db = get_db()
     listing = db.execute('SELECT * FROM listings WHERE id = ?', (listing_id,)).fetchone()
     if not listing:
-        abort(404)
+        flash('That listing could not be found.', 'error')
+        return redirect(url_for('admin_dashboard'))
 
     db.execute("UPDATE listings SET status = 'suspended', updated_at = ? WHERE id = ?",
                (datetime.now().isoformat(), listing_id))
@@ -1295,7 +1315,8 @@ def restore_listing(listing_id):
     db = get_db()
     listing = db.execute('SELECT * FROM listings WHERE id = ?', (listing_id,)).fetchone()
     if not listing:
-        abort(404)
+        flash('That listing could not be found.', 'error')
+        return redirect(url_for('admin_dashboard'))
 
     new_status = 'active' if listing['verification_status'] == 'verified' else 'draft'
     db.execute("UPDATE listings SET status = ?, updated_at = ? WHERE id = ?",
@@ -1313,7 +1334,8 @@ def resolve_appeal(appeal_id):
     response = sanitize_input(request.form.get('response', ''))
     appeal_row = db.execute('SELECT * FROM appeals WHERE id = ?', (appeal_id,)).fetchone()
     if not appeal_row:
-        abort(404)
+        flash('That appeal could not be found.', 'error')
+        return redirect(url_for('admin_dashboard'))
 
     new_status = 'approved' if decision == 'approve' else 'denied'
     db.execute(

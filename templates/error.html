@@ -1,26 +1,27 @@
-<!doctype html>
-<html lang="en">
-  <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width,initial-scale=1" />
-    <title>{{ code }} - Error</title>
-    <style>
-      body { font-family: system-ui, -apple-system, Roboto, "Segoe UI", Arial; background:#f7f7f9; color:#222; margin:0; padding:0; }
-      .container { max-width:760px; margin:6rem auto; background:white; border-radius:8px; padding:2rem; box-shadow:0 6px 24px rgba(0,0,0,0.08); }
-      h1 { margin:0 0 .5rem; font-size:2rem; }
-      p.lead { color:#555; }
-      .meta { margin-top:1rem; color:#666; font-size:.95rem; }
-      a.btn { display:inline-block; margin-top:1rem; padding:.5rem .9rem; background:#007bff; color:#fff; border-radius:6px; text-decoration:none; }
-    </style>
-  </head>
-  <body>
-    <div class="container" role="main">
-      <h1>Error {{ code }}</h1>
-      <p class="lead">{{ message }}</p>
-      <div class="meta">
-        <p>If you reached this page unexpectedly, try returning to the <a href="{{ url_for('home') }}">home page</a> or contact support.</p>
-      </div>
-      <a class="btn" href="{{ url_for('home') }}">Home</a>
+{% extends "base.html" %}
+{% import "_icons.html" as icons %}
+{% block title %}{{ message or "Something went wrong" }} — {{ app_name }}{% endblock %}
+{% block content %}
+<div class="flex-1 flex items-center justify-center py-24 px-4">
+  <div class="w-full max-w-md text-center">
+    <div class="inline-flex items-center justify-center h-14 w-14 rounded-full bg-muted mb-5">
+      {{ icons.house('h-7 w-7 text-muted-foreground') }}
     </div>
-  </body>
-</html>
+    <h1 class="text-2xl font-serif font-bold mb-2">
+      {% if code == 404 %}We couldn't find that page
+      {% elif code == 403 %}That page isn't available to you
+      {% else %}Something went wrong on our end
+      {% endif %}
+    </h1>
+    <p class="text-muted-foreground text-sm mb-8">
+      {% if code == 404 %}It may have been moved, deleted, or the link might be outdated.
+      {% elif code == 403 %}You may need to log in with a different account to see this.
+      {% else %}Give it another try in a moment — if it keeps happening, let us know.
+      {% endif %}
+    </p>
+    <a href="{{ url_for('home') }}" class="inline-flex items-center justify-center h-11 px-6 rounded-lg bg-primary text-primary-foreground font-medium hover:opacity-90 transition">
+      Back to ACHULO
+    </a>
+  </div>
+</div>
+{% endblock %}
