@@ -20,13 +20,15 @@
       <div class="text-2xl font-bold">{{ listings|selectattr('status', 'equalto', 'active')|list|length }}</div>
     </div>
     <div class="bg-card border border-border rounded-xl p-4">
-      <p class="text-sm text-muted-foreground mb-1">Pending</p>
-      <div class="text-2xl font-bold">{{ listings|selectattr('status', 'equalto', 'draft')|list|length }}</div>
+      <p class="text-sm text-muted-foreground mb-1">Identity Verification</p>
+      <div class="text-sm font-medium {{ 'text-green-600' if user['kyc_status'] == 'verified' else ('text-destructive' if user['kyc_status'] == 'rejected' else 'text-yellow-600') }}">
+        {{ 'Verified' if user['kyc_status'] == 'verified' else ('Rejected' if user['kyc_status'] == 'rejected' else ('Pending review' if user['kyc_status'] == 'pending' else 'Not started')) }}
+      </div>
     </div>
     <div class="bg-card border border-border rounded-xl p-4">
-      <p class="text-sm text-muted-foreground mb-1">Certificate Status</p>
-      <div class="text-sm font-medium {{ 'text-green-600' if user['kyc_status'] == 'verified' else ('text-destructive' if user['kyc_status'] == 'rejected' else 'text-yellow-600') }}">
-        {{ 'Verified' if user['kyc_status'] == 'verified' else ('Rejected' if user['kyc_status'] == 'rejected' else 'Pending Admin Review') }}
+      <p class="text-sm text-muted-foreground mb-1">Verified Agent Badge</p>
+      <div class="text-sm font-medium {{ 'text-green-600' if user['company_status'] == 'verified' else ('text-destructive' if user['company_status'] == 'rejected' else 'text-muted-foreground') }}">
+        {{ 'Earned' if user['company_status'] == 'verified' else ('Rejected' if user['company_status'] == 'rejected' else ('Pending review' if user['company_status'] == 'pending' else 'Not earned yet')) }}
       </div>
     </div>
   </div>
@@ -37,9 +39,10 @@
       <a href="{{ url_for('appeal') }}" class="font-medium underline">Request a review</a>
     </div>
   {% endif %}
-  {% if user['kyc_status'] != 'verified' %}
-    <div class="bg-muted/30 border border-border text-sm rounded-xl p-4 mb-8">
-      Your listings won't go live until your certificate is verified by an admin.
+  {% if user['kyc_status'] not in ('verified', 'pending') %}
+    <div class="bg-muted/30 border border-border text-sm rounded-xl p-4 mb-8 flex items-center justify-between flex-wrap gap-2">
+      <span>Verify your identity to build trust with buyers — it only takes a minute.</span>
+      <a href="{{ url_for('dashboard_kyc') }}" class="font-medium text-primary hover:underline">Start verification</a>
     </div>
   {% endif %}
 

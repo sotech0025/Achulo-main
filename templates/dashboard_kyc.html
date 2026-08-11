@@ -1,41 +1,138 @@
 {% extends "base.html" %}
 {% import "_icons.html" as icons %}
-{% block title %}Identity Verification — {{ app_name }}{% endblock %}
+{% block title %}Verification — {{ app_name }}{% endblock %}
 {% block content %}
 <div class="container mx-auto px-4 md:px-8 max-w-2xl py-10">
-  <h1 class="text-3xl font-serif font-bold mb-8">Identity Verification</h1>
+  <h1 class="text-3xl font-serif font-bold mb-1">Verification</h1>
+  <p class="text-muted-foreground text-sm mb-8">
+    Becoming a Verified Agent involves two checks — identity verification and company verification.
+    Complete both to earn the Verified Agent badge.
+  </p>
 
-  {% if user['kyc_status'] == 'verified' %}
-    <div class="bg-card border border-border rounded-2xl p-8 text-center">
-      <div class="inline-flex items-center justify-center h-14 w-14 rounded-full bg-green-50 text-green-600 mb-4">{{ icons.check_circle('h-7 w-7') }}</div>
-      <h2 class="text-2xl font-bold mb-2">You're Verified!</h2>
-      <p class="text-muted-foreground">Your identity has been confirmed. You can now publish listings with a verified badge.</p>
+  <!-- STEP 1: Identity -->
+  <div class="bg-card border border-border rounded-2xl p-6 mb-5">
+    <div class="flex items-start justify-between gap-3 mb-3">
+      <div class="flex items-center gap-3">
+        <span class="flex items-center justify-center h-7 w-7 rounded-full bg-primary text-primary-foreground text-xs font-bold shrink-0">1</span>
+        <div>
+          <h2 class="font-bold text-lg">Identity Verification</h2>
+          <p class="text-xs text-muted-foreground mt-0.5">Confirm who you are with a valid government-issued ID.</p>
+        </div>
+      </div>
+      {% if user['kyc_status'] == 'verified' %}
+        <span class="inline-flex items-center gap-1 text-xs font-medium text-green-700 bg-green-50 border border-green-200 rounded-full px-2.5 py-1 shrink-0">{{ icons.check('h-3 w-3') }} Verified</span>
+      {% elif user['kyc_status'] == 'pending' %}
+        <span class="inline-flex items-center gap-1 text-xs font-medium text-yellow-700 bg-yellow-50 border border-yellow-200 rounded-full px-2.5 py-1 shrink-0">{{ icons.clock('h-3 w-3') }} Pending review</span>
+      {% elif user['kyc_status'] == 'rejected' %}
+        <span class="inline-flex items-center gap-1 text-xs font-medium text-red-700 bg-red-50 border border-red-200 rounded-full px-2.5 py-1 shrink-0">Rejected</span>
+      {% else %}
+        <span class="inline-flex items-center gap-1 text-xs font-medium text-muted-foreground bg-muted rounded-full px-2.5 py-1 shrink-0">Required · Not verified</span>
+      {% endif %}
     </div>
-  {% else %}
-    <div class="bg-card border border-border rounded-2xl p-6">
-      <form method="post" enctype="multipart/form-data" class="space-y-5">
-        <div>
-          <label class="text-sm font-medium block mb-1">Document Type *</label>
-          <select name="document_type" required class="w-full h-11 px-3 rounded-md border border-border">
-            <option value="nin">National ID (NIN)</option>
-            <option value="passport">Passport</option>
-            <option value="drivers_license">Driver's License</option>
-          </select>
-          <p class="text-xs text-muted-foreground mt-1">Select the type of ID you'll upload.</p>
-        </div>
 
+    {% if user['kyc_status'] == 'verified' %}
+      <div class="flex items-center gap-3 bg-green-50 border border-green-200 rounded-lg px-4 py-3">
+        {{ icons.check_circle('h-5 w-5 text-green-600 shrink-0') }}
+        <p class="text-sm text-green-800">Your identity has been confirmed. You can publish listings.</p>
+      </div>
+    {% elif user['kyc_status'] == 'pending' %}
+      <div class="flex items-center gap-3 bg-yellow-50 border border-yellow-200 rounded-lg px-4 py-3">
+        {{ icons.clock('h-5 w-5 text-yellow-600 shrink-0') }}
+        <p class="text-sm text-yellow-800">Your document is with our team. This is usually reviewed within a day.</p>
+      </div>
+    {% else %}
+      {% if user['kyc_status'] == 'rejected' %}
+        <p class="text-sm text-red-700 mb-3">Your last submission wasn't accepted. Please try again with a clearer, unedited document.</p>
+      {% endif %}
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs mb-4">
         <div>
-          <label class="text-sm font-medium block mb-1">Upload Document *</label>
-          <input type="file" name="document" accept=".pdf,.jpg,.jpeg,.png,.doc,.docx" required
-                 class="w-full px-3 py-2 rounded-md border border-border" />
-          <p class="text-xs text-muted-foreground mt-1">Accepted: PDF, JPG, PNG, DOC, DOCX (Max 10MB)</p>
+          <p class="font-semibold text-foreground mb-1.5">Accepted documents</p>
+          <ul class="space-y-1 text-muted-foreground">
+            <li>International passport</li>
+            <li>Driver's licence</li>
+            <li>National ID card</li>
+            <li>Voter's card</li>
+          </ul>
         </div>
-
-        <button type="submit" class="w-full h-11 rounded-lg bg-primary text-primary-foreground font-medium hover:opacity-90 transition">
-          Upload and Verify
-        </button>
+        <div>
+          <p class="font-semibold text-foreground mb-1.5">We do not accept</p>
+          <ul class="space-y-1 text-muted-foreground">
+            <li>NIN (digital or laminated)</li>
+            <li>Photocopies</li>
+            <li>Screenshots of any document</li>
+            <li>Any document not listed above</li>
+          </ul>
+        </div>
+      </div>
+      <form method="post" action="{{ url_for('verify_identity_submit') }}" enctype="multipart/form-data" class="space-y-3">
+        <input type="file" name="document" accept=".pdf,.jpg,.jpeg,.png,.doc,.docx" required
+               class="w-full px-3 py-2 rounded-md border border-border text-sm" />
+        <p class="text-xs text-muted-foreground">PDF, JPG, PNG, DOC, or DOCX. Max 10MB.</p>
+        <button type="submit" class="text-sm font-medium bg-primary text-primary-foreground rounded-lg px-4 py-2 hover:opacity-90 transition">Submit for review</button>
       </form>
+    {% endif %}
+  </div>
+
+  <!-- STEP 2: Company -->
+  <div class="bg-card border border-border rounded-2xl p-6 mb-8">
+    <div class="flex items-start justify-between gap-3 mb-3">
+      <div class="flex items-center gap-3">
+        <span class="flex items-center justify-center h-7 w-7 rounded-full bg-muted text-foreground text-xs font-bold shrink-0">2</span>
+        <div>
+          <h2 class="font-bold text-lg">Company Verification</h2>
+          <p class="text-xs text-muted-foreground mt-0.5">Optional — but it's what earns your Verified Agent badge.</p>
+        </div>
+      </div>
+      {% if user['company_status'] == 'verified' %}
+        <span class="inline-flex items-center gap-1 text-xs font-medium text-green-700 bg-green-50 border border-green-200 rounded-full px-2.5 py-1 shrink-0">{{ icons.check('h-3 w-3') }} Verified</span>
+      {% elif user['company_status'] == 'pending' %}
+        <span class="inline-flex items-center gap-1 text-xs font-medium text-yellow-700 bg-yellow-50 border border-yellow-200 rounded-full px-2.5 py-1 shrink-0">{{ icons.clock('h-3 w-3') }} Pending review</span>
+      {% elif user['company_status'] == 'rejected' %}
+        <span class="inline-flex items-center gap-1 text-xs font-medium text-red-700 bg-red-50 border border-red-200 rounded-full px-2.5 py-1 shrink-0">Rejected</span>
+      {% else %}
+        <span class="inline-flex items-center gap-1 text-xs font-medium text-muted-foreground bg-muted rounded-full px-2.5 py-1 shrink-0">Optional · Not verified</span>
+      {% endif %}
     </div>
-  {% endif %}
+
+    {% if user['company_status'] == 'verified' %}
+      <div class="flex items-center gap-3 bg-green-50 border border-green-200 rounded-lg px-4 py-3">
+        {{ icons.shield_check('h-5 w-5 text-green-600 shrink-0') }}
+        <p class="text-sm text-green-800">Your company is verified. The Verified Agent badge now shows on your listings and profile.</p>
+      </div>
+    {% elif user['company_status'] == 'pending' %}
+      <div class="flex items-center gap-3 bg-yellow-50 border border-yellow-200 rounded-lg px-4 py-3">
+        {{ icons.clock('h-5 w-5 text-yellow-600 shrink-0') }}
+        <p class="text-sm text-yellow-800">Your documents are with our team for review.</p>
+      </div>
+    {% else %}
+      {% if user['company_status'] == 'rejected' %}
+        <p class="text-sm text-red-700 mb-3">Your last submission wasn't accepted. Please re-submit clear, unedited scans.</p>
+      {% endif %}
+      <p class="text-xs font-semibold text-foreground mb-1.5">Send these documents, scanned in colour</p>
+      <ul class="text-xs text-muted-foreground space-y-1 mb-4">
+        <li>Incorporation Certificate</li>
+        <li>Any one of the following: a utility bill showing the address on your account (issued within the last 3 months), or your most recent tax clearance (issued within the last 12 months)</li>
+      </ul>
+      <p class="text-xs text-muted-foreground mb-4">Photocopies and screenshots are not accepted.</p>
+      <form method="post" action="{{ url_for('verify_company_submit') }}" enctype="multipart/form-data" class="space-y-3">
+        <div>
+          <label class="text-xs font-medium block mb-1">Incorporation Certificate</label>
+          <input type="file" name="incorporation" accept=".pdf,.jpg,.jpeg,.png,.doc,.docx" required
+                 class="w-full px-3 py-2 rounded-md border border-border text-sm" />
+        </div>
+        <div>
+          <label class="text-xs font-medium block mb-1">Utility bill or tax clearance</label>
+          <input type="file" name="proof" accept=".pdf,.jpg,.jpeg,.png,.doc,.docx" required
+                 class="w-full px-3 py-2 rounded-md border border-border text-sm" />
+        </div>
+        <button type="submit" class="text-sm font-medium bg-primary text-primary-foreground rounded-lg px-4 py-2 hover:opacity-90 transition">Submit for review</button>
+      </form>
+    {% endif %}
+  </div>
+
+  <div class="border-t border-border pt-6">
+    <h3 class="text-sm font-bold mb-1.5">Why we verify agents</h3>
+    <p class="text-xs text-muted-foreground leading-relaxed">Verification means we've checked an agent's identity and business documents. It's a check we've done — not an endorsement, and not a guarantee about how they do business.</p>
+  </div>
 </div>
 {% endblock %}

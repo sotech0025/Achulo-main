@@ -131,6 +131,7 @@ def init_db():
             kyc_document_type TEXT,
             kyc_document_url TEXT,
             kyc_reference_id TEXT,
+            company_status TEXT NOT NULL DEFAULT 'unverified',
             nin TEXT UNIQUE,
             bvn TEXT UNIQUE,
             cac TEXT UNIQUE,
@@ -437,16 +438,6 @@ def register():
             flash('Invalid user role.', 'error')
             return render_template('register.html')
 
-        # Listing agents must submit a government certificate/ID for admin review
-        gov_cert = request.files.get('gov_certificate')
-        if role == 'seller':
-            if not gov_cert or not gov_cert.filename:
-                flash('Listing agents must upload a government-issued certificate or ID for verification.', 'error')
-                return render_template('register.html')
-            if not allowed_file(gov_cert.filename):
-                flash('Certificate must be a PDF, JPG, PNG, DOC, or DOCX file.', 'error')
-                return render_template('register.html')
-
         db = get_db()
         
         # Check if email exists
@@ -454,45 +445,25 @@ def register():
             flash('Email already registered.', 'error')
             return render_template('register.html')
 
-        # Create user
+        # Create user. Listing agents can start listing right away — identity and
+        # company verification happen afterward from their dashboard, not at signup.
         password_hash = hash_password(password)
         now = datetime.now().isoformat()
-        kyc_status = 'pending' if role == 'seller' else 'unverified'
 
         cur = db.execute(
             """INSERT INTO users 
-            (name, email, phone, password_hash, role, kyc_status, country, created_at, updated_at, accepted_terms, accepted_privacy)
-            VALUES (?, ?, ?, ?, ?, ?, 'Nigeria', ?, ?, 1, 1)""",
-            (name, email, phone, password_hash, role, kyc_status, now, now)
+            (name, email, phone, password_hash, role, kyc_status, company_status, country, created_at, updated_at, accepted_terms, accepted_privacy)
+            VALUES (?, ?, ?, ?, ?, 'unverified', 'unverified', 'Nigeria', ?, ?, 1, 1)""",
+            (name, email, phone, password_hash, role, now, now)
         )
         db.commit()
         
         user_id = cur.lastrowid
 
-        # Save the government certificate for admin review
-        if role == 'seller' and gov_cert and gov_cert.filename:
-            gov_cert.seek(0, os.SEEK_END)
-            size = gov_cert.tell()
-            gov_cert.seek(0)
-            if size <= MAX_FILE_SIZE:
-                filename = secure_filename(f"cert_{user_id}_{int(datetime.now().timestamp())}_{gov_cert.filename}")
-                filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
-                gov_cert.save(filepath)
-                db.execute(
-                    """INSERT INTO documents (user_id, document_type, file_path, file_name, created_at)
-                    VALUES (?, 'government_certificate', ?, ?, ?)""",
-                    (user_id, filepath, filename, datetime.now().isoformat())
-                )
-                db.execute(
-                    "UPDATE users SET kyc_document_type = 'government_certificate' WHERE id = ?",
-                    (user_id,)
-                )
-                db.commit()
-
         log_action(user_id, 'user_registration', 'user', user_id, f'New {role} account created')
 
         if role == 'seller':
-            flash('Account created! Your certificate has been submitted — an admin will review it before you can publish listings.', 'success')
+            flash('Account created! Head to Verification in your dashboard to get your identity — and optionally your company — verified.', 'success')
         else:
             flash('Account created successfully! Please log in.', 'success')
         return redirect(url_for('login'))
@@ -580,7 +551,7 @@ def dashboard():
         return render_template('dashboard_seller.html', user=user, listings=listings)
     else:
         listings = db.execute(
-            """SELECT l.*, u.name AS lister_name, u.kyc_status AS lister_kyc_status, u.id AS lister_id
+            """SELECT l.*, u.name AS lister_name, u.kyc_status AS lister_kyc_status, u.company_status AS lister_company_status, u.id AS lister_id
                FROM listings l JOIN users u ON u.id = l.owner_id
                WHERE l.status = 'active' ORDER BY l.created_at DESC LIMIT 9"""
         ).fetchall()
@@ -591,57 +562,107 @@ def dashboard():
         ).fetchall()
         return render_template('dashboard_buyer.html', user=user, listings=listings, conversations=conversations)
 
-@app.route('/dashboard/kyc', methods=['GET', 'POST'])
+@app.route('/dashboard/verification', methods=['GET'])
 @login_required
 def dashboard_kyc():
+    """Two-step verification: identity (required) and company (optional, earns the Verified Agent badge)."""
     db = get_db()
     user = db.execute('SELECT * FROM users WHERE id = ?', (session['user_id'],)).fetchone()
-    
-    if request.method == 'POST':
-        doc_type = request.form.get('document_type')
-        
-        if 'document' not in request.files:
-            flash('No file selected.', 'error')
-            return render_template('dashboard_kyc.html', user=user)
-        
-        file = request.files['document']
-        
-        if file.filename == '':
-            flash('No file selected.', 'error')
-            return render_template('dashboard_kyc.html', user=user)
-        
-        if not allowed_file(file.filename):
-            flash('File type not allowed. Use PDF, JPG, PNG, DOC, DOCX.', 'error')
-            return render_template('dashboard_kyc.html', user=user)
-        
-        if len(file.read()) > MAX_FILE_SIZE:
-            flash('File too large. Maximum 10MB.', 'error')
-            return render_template('dashboard_kyc.html', user=user)
-        
-        file.seek(0)
-        filename = secure_filename(f"{session['user_id']}_{doc_type}_{int(datetime.now().timestamp())}_{file.filename}")
-        filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
-        file.save(filepath)
-        
-        # Store document info
-        db.execute(
-            """INSERT INTO documents 
-            (user_id, document_type, file_path, file_name, created_at)
-            VALUES (?, ?, ?, ?, ?)""",
-            (session['user_id'], doc_type, filepath, filename, datetime.now().isoformat())
-        )
-        
-        # Update user KYC document
-        db.execute(
-            'UPDATE users SET kyc_document_type = ?, kyc_document_url = ? WHERE id = ?',
-            (doc_type, filename, session['user_id'])
-        )
-        db.commit()
-        
-        log_action(session['user_id'], 'document_uploaded', 'document', None, f'Uploaded {doc_type}')
-        flash(f'{doc_type.upper()} uploaded successfully. Admin will review shortly.', 'success')
-    
-    return render_template('dashboard_kyc.html', user=user)
+    identity_doc = db.execute(
+        "SELECT * FROM documents WHERE user_id = ? AND document_type = 'identity_document' ORDER BY id DESC LIMIT 1",
+        (session['user_id'],)
+    ).fetchone()
+    company_docs = db.execute(
+        "SELECT * FROM documents WHERE user_id = ? AND document_type IN ('company_incorporation','company_proof') ORDER BY id DESC",
+        (session['user_id'],)
+    ).fetchall()
+    return render_template('dashboard_kyc.html', user=user, identity_doc=identity_doc, company_docs=company_docs)
+
+@app.route('/dashboard/verification/identity', methods=['POST'])
+@login_required
+def verify_identity_submit():
+    db = get_db()
+    file = request.files.get('document')
+
+    if not file or file.filename == '':
+        flash('Please choose a file to upload.', 'error')
+        return redirect(url_for('dashboard_kyc'))
+
+    if not allowed_file(file.filename):
+        flash('File type not allowed. Use PDF, JPG, PNG, DOC, or DOCX.', 'error')
+        return redirect(url_for('dashboard_kyc'))
+
+    file.seek(0, os.SEEK_END)
+    size = file.tell()
+    file.seek(0)
+    if size > MAX_FILE_SIZE:
+        flash('File too large. Maximum 10MB.', 'error')
+        return redirect(url_for('dashboard_kyc'))
+
+    filename = secure_filename(f"identity_{session['user_id']}_{int(datetime.now().timestamp())}_{file.filename}")
+    filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+    file.save(filepath)
+
+    db.execute(
+        """INSERT INTO documents (user_id, document_type, file_path, file_name, created_at)
+        VALUES (?, 'identity_document', ?, ?, ?)""",
+        (session['user_id'], filepath, filename, datetime.now().isoformat())
+    )
+    db.execute("UPDATE users SET kyc_status = 'pending' WHERE id = ?", (session['user_id'],))
+    db.commit()
+
+    log_action(session['user_id'], 'identity_document_uploaded', 'document', None)
+    flash('Identity document submitted. An admin will review it shortly.', 'success')
+    return redirect(url_for('dashboard_kyc'))
+
+@app.route('/dashboard/verification/company', methods=['POST'])
+@login_required
+def verify_company_submit():
+    db = get_db()
+    incorp = request.files.get('incorporation')
+    proof = request.files.get('proof')
+
+    if not incorp or incorp.filename == '' or not proof or proof.filename == '':
+        flash('Please attach both your incorporation certificate and one proof-of-address document.', 'error')
+        return redirect(url_for('dashboard_kyc'))
+
+    for f in (incorp, proof):
+        if not allowed_file(f.filename):
+            flash('File type not allowed. Use PDF, JPG, PNG, DOC, or DOCX.', 'error')
+            return redirect(url_for('dashboard_kyc'))
+        f.seek(0, os.SEEK_END)
+        size = f.tell()
+        f.seek(0)
+        if size > MAX_FILE_SIZE:
+            flash('One of your files is too large. Maximum 10MB each.', 'error')
+            return redirect(url_for('dashboard_kyc'))
+
+    now_ts = int(datetime.now().timestamp())
+    incorp_filename = secure_filename(f"company_incorp_{session['user_id']}_{now_ts}_{incorp.filename}")
+    incorp_path = os.path.join(app.config['UPLOAD_FOLDER'], incorp_filename)
+    incorp.save(incorp_path)
+
+    proof_filename = secure_filename(f"company_proof_{session['user_id']}_{now_ts}_{proof.filename}")
+    proof_path = os.path.join(app.config['UPLOAD_FOLDER'], proof_filename)
+    proof.save(proof_path)
+
+    now = datetime.now().isoformat()
+    db.execute(
+        """INSERT INTO documents (user_id, document_type, file_path, file_name, created_at)
+        VALUES (?, 'company_incorporation', ?, ?, ?)""",
+        (session['user_id'], incorp_path, incorp_filename, now)
+    )
+    db.execute(
+        """INSERT INTO documents (user_id, document_type, file_path, file_name, created_at)
+        VALUES (?, 'company_proof', ?, ?, ?)""",
+        (session['user_id'], proof_path, proof_filename, now)
+    )
+    db.execute("UPDATE users SET company_status = 'pending' WHERE id = ?", (session['user_id'],))
+    db.commit()
+
+    log_action(session['user_id'], 'company_documents_uploaded', 'document', None)
+    flash('Company documents submitted for review.', 'success')
+    return redirect(url_for('dashboard_kyc'))
 
 @app.route('/dashboard/listings', methods=['GET', 'POST'])
 @login_required
@@ -941,7 +962,7 @@ def listing_detail(listing_id):
         flash('That listing is no longer available — it may have been removed.', 'error')
         return redirect(url_for('home'))
     
-    owner = db.execute('SELECT id, name, phone, kyc_status, account_status FROM users WHERE id = ?', (listing['owner_id'],)).fetchone()
+    owner = db.execute('SELECT id, name, phone, kyc_status, company_status, account_status FROM users WHERE id = ?', (listing['owner_id'],)).fetchone()
     images = db.execute('SELECT * FROM listing_images WHERE listing_id = ? ORDER BY id', (listing_id,)).fetchall()
 
     return render_template('listing.html', listing=listing, owner=owner, images=images)
@@ -1120,17 +1141,28 @@ def admin_dashboard():
         'total_users': db.execute('SELECT COUNT(*) as count FROM users').fetchone()['count'],
         'total_listings': db.execute('SELECT COUNT(*) as count FROM listings').fetchone()['count'],
         'pending_kyc': db.execute("SELECT COUNT(*) as count FROM users WHERE kyc_status = 'pending'").fetchone()['count'],
+        'pending_company': db.execute("SELECT COUNT(*) as count FROM users WHERE company_status = 'pending'").fetchone()['count'],
         'pending_reviews': db.execute("SELECT COUNT(*) as count FROM listings WHERE verification_status = 'pending_review'").fetchone()['count'],
         'flagged_listings': db.execute("SELECT COUNT(*) as count FROM listings WHERE flagged_for_review = 1").fetchone()['count'],
         'pending_appeals': db.execute("SELECT COUNT(*) as count FROM appeals WHERE status = 'pending'").fetchone()['count'],
     }
 
     pending_docs = db.execute(
-        """SELECT u.id, u.name, u.email, u.kyc_document_type, d.file_path, d.file_name, d.created_at
+        """SELECT u.id, u.name, u.email, d.file_path, d.file_name, d.created_at
            FROM users u
-           JOIN documents d ON u.id = d.user_id AND d.document_type = 'government_certificate'
+           JOIN documents d ON u.id = d.user_id AND d.document_type = 'identity_document'
            WHERE u.kyc_status = 'pending'
            ORDER BY d.created_at"""
+    ).fetchall()
+
+    pending_company_docs = db.execute(
+        """SELECT u.id, u.name, u.email,
+             GROUP_CONCAT(d.document_type || '::' || d.file_name, '||') AS docs
+           FROM users u
+           JOIN documents d ON u.id = d.user_id AND d.document_type IN ('company_incorporation','company_proof')
+           WHERE u.company_status = 'pending'
+           GROUP BY u.id
+           ORDER BY MAX(d.created_at)"""
     ).fetchall()
 
     pending_listings = db.execute(
@@ -1156,6 +1188,7 @@ def admin_dashboard():
 
     return render_template(
         'admin_dashboard.html', stats=stats, pending_docs=pending_docs,
+        pending_company_docs=pending_company_docs,
         pending_listings=pending_listings, all_users=all_users,
         all_listings=all_listings, appeals=appeals
     )
@@ -1194,6 +1227,36 @@ def reject_user_kyc(user_id):
     db.commit()
     log_action(session['user_id'], 'user_kyc_rejected', 'user', user_id)
     flash(f'Certificate for {user["name"]} was rejected.', 'success')
+    return redirect(url_for('admin_dashboard'))
+
+@app.route('/admin/verify-company/<int:user_id>', methods=['POST'])
+@admin_required
+def verify_company_kyc(user_id):
+    db = get_db()
+    user = db.execute('SELECT * FROM users WHERE id = ?', (user_id,)).fetchone()
+    if not user:
+        flash('That user could not be found.', 'error')
+        return redirect(url_for('admin_dashboard'))
+
+    db.execute("UPDATE users SET company_status = 'verified' WHERE id = ?", (user_id,))
+    db.commit()
+    log_action(session['user_id'], 'company_verified', 'user', user_id, f'Admin verified company for {user["name"]}')
+    flash(f'{user["name"]} now has the Verified Agent badge.', 'success')
+    return redirect(url_for('admin_dashboard'))
+
+@app.route('/admin/reject-company/<int:user_id>', methods=['POST'])
+@admin_required
+def reject_company_kyc(user_id):
+    db = get_db()
+    user = db.execute('SELECT * FROM users WHERE id = ?', (user_id,)).fetchone()
+    if not user:
+        flash('That user could not be found.', 'error')
+        return redirect(url_for('admin_dashboard'))
+
+    db.execute("UPDATE users SET company_status = 'rejected' WHERE id = ?", (user_id,))
+    db.commit()
+    log_action(session['user_id'], 'company_rejected', 'user', user_id)
+    flash(f'Company documents for {user["name"]} were rejected.', 'success')
     return redirect(url_for('admin_dashboard'))
 
 @app.route('/admin/users/<int:user_id>/suspend', methods=['POST'])

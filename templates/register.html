@@ -16,7 +16,7 @@
     <h1 class="text-2xl font-serif font-bold mb-2">Create Account</h1>
     <p class="text-muted-foreground text-sm mb-6">Join ACHULO to list properties or find your next home.</p>
 
-    <form method="post" enctype="multipart/form-data" class="space-y-5" id="register-form">
+    <form method="post" class="space-y-5" id="register-form">
 
       <div>
         <label class="text-sm font-medium block mb-2">I want to join as</label>
@@ -80,12 +80,14 @@
         </div>
       </div>
 
-      <div id="cert-field" class="overflow-hidden transition-[height] duration-300 ease-[cubic-bezier(.4,0,.2,1)]" style="height: 0px;">
-        <div id="cert-field-inner" class="pt-1 opacity-0 -translate-y-1 transition-all duration-200 ease-out">
-          <label class="text-sm font-medium block mb-1">Government Certificate / ID *</label>
-          <input type="file" name="gov_certificate" accept=".pdf,.jpg,.jpeg,.png,.doc,.docx"
-                 class="w-full px-3 py-2 rounded-md border border-border" />
-          <p class="text-xs text-muted-foreground mt-1">Required for listing agents. An admin reviews this before your account can publish listings. Accepted: PDF, JPG, PNG, DOC, DOCX (Max 10MB)</p>
+      <div id="seller-note" class="overflow-hidden transition-[height] duration-300 ease-[cubic-bezier(.4,0,.2,1)]" style="height: 0px;">
+        <div id="seller-note-inner" class="pt-1 opacity-0 -translate-y-1 transition-all duration-200 ease-out">
+          <div class="flex gap-2.5 items-start bg-primary/5 border border-primary/20 rounded-lg px-3.5 py-3">
+            {{ icons.shield_check('h-4.5 w-4.5 text-primary shrink-0 mt-0.5') }}
+            <p class="text-xs text-muted-foreground leading-relaxed">You can create your account now and start listing right away.
+              Right after signing up, head to <strong>Verification</strong> in your dashboard to confirm your identity —
+              and optionally verify your company for the Verified Agent badge.</p>
+          </div>
         </div>
       </div>
 
@@ -174,46 +176,42 @@
 <script>
   const roleInputs = document.querySelectorAll('input[name="role"]');
   const highlight = document.getElementById('role-highlight');
-  const certField = document.getElementById('cert-field');
-  const certInner = document.getElementById('cert-field-inner');
-  const certInput = certField.querySelector('input[type="file"]');
+  const noteField = document.getElementById('seller-note');
+  const noteInner = document.getElementById('seller-note-inner');
 
   function positionHighlight() {
     const checkedIndex = [...roleInputs].findIndex(r => r.checked);
     highlight.style.transform = checkedIndex === 1 ? 'translateX(calc(100% + 12px))' : 'translateX(0)';
   }
 
-  function toggleCertField(isSeller) {
+  function toggleSellerNote(isSeller) {
     if (isSeller) {
-      const target = certInner.scrollHeight;
-      certField.style.height = target + 'px';
-      certInput.required = true;
+      const target = noteInner.scrollHeight;
+      noteField.style.height = target + 'px';
       requestAnimationFrame(() => {
-        certInner.classList.remove('opacity-0', '-translate-y-1');
+        noteInner.classList.remove('opacity-0', '-translate-y-1');
       });
-      certField.addEventListener('transitionend', function onEnd(e) {
+      noteField.addEventListener('transitionend', function onEnd(e) {
         if (e.propertyName === 'height') {
-          certField.style.height = 'auto';
-          certField.removeEventListener('transitionend', onEnd);
+          noteField.style.height = 'auto';
+          noteField.removeEventListener('transitionend', onEnd);
         }
       });
     } else {
-      // lock current pixel height first so the collapse can animate from it
-      certField.style.height = certField.scrollHeight + 'px';
-      certInner.classList.add('opacity-0', '-translate-y-1');
+      noteField.style.height = noteField.scrollHeight + 'px';
+      noteInner.classList.add('opacity-0', '-translate-y-1');
       requestAnimationFrame(() => {
         requestAnimationFrame(() => {
-          certField.style.height = '0px';
+          noteField.style.height = '0px';
         });
       });
-      certInput.required = false;
     }
   }
 
   function syncForm() {
     const isSeller = document.querySelector('input[name="role"]:checked').value === 'seller';
     positionHighlight();
-    toggleCertField(isSeller);
+    toggleSellerNote(isSeller);
   }
 
   roleInputs.forEach(r => r.addEventListener('change', syncForm));

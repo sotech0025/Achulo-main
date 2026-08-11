@@ -4,18 +4,19 @@
 <div class="container mx-auto px-4 md:px-8 max-w-6xl py-10">
   <h1 class="text-3xl font-serif font-bold mb-8">Admin Dashboard</h1>
 
-  <div class="grid grid-cols-2 md:grid-cols-6 gap-4 mb-10">
+  <div class="grid grid-cols-2 md:grid-cols-7 gap-4 mb-10">
     <div class="bg-card border border-border rounded-xl p-4"><p class="text-xs text-muted-foreground mb-1">Users</p><div class="text-2xl font-bold">{{ stats.total_users }}</div></div>
     <div class="bg-card border border-border rounded-xl p-4"><p class="text-xs text-muted-foreground mb-1">Listings</p><div class="text-2xl font-bold">{{ stats.total_listings }}</div></div>
-    <div class="bg-card border border-border rounded-xl p-4"><p class="text-xs text-muted-foreground mb-1">Pending KYC</p><div class="text-2xl font-bold text-yellow-600">{{ stats.pending_kyc }}</div></div>
+    <div class="bg-card border border-border rounded-xl p-4"><p class="text-xs text-muted-foreground mb-1">Pending Identity</p><div class="text-2xl font-bold text-yellow-600">{{ stats.pending_kyc }}</div></div>
+    <div class="bg-card border border-border rounded-xl p-4"><p class="text-xs text-muted-foreground mb-1">Pending Company</p><div class="text-2xl font-bold text-yellow-600">{{ stats.pending_company }}</div></div>
     <div class="bg-card border border-border rounded-xl p-4"><p class="text-xs text-muted-foreground mb-1">Pending Listings</p><div class="text-2xl font-bold text-yellow-600">{{ stats.pending_reviews }}</div></div>
     <div class="bg-card border border-border rounded-xl p-4"><p class="text-xs text-muted-foreground mb-1">Flagged</p><div class="text-2xl font-bold text-destructive">{{ stats.flagged_listings }}</div></div>
     <div class="bg-card border border-border rounded-xl p-4"><p class="text-xs text-muted-foreground mb-1">Appeals</p><div class="text-2xl font-bold text-yellow-600">{{ stats.pending_appeals }}</div></div>
   </div>
 
-  <!-- Pending lister certificates -->
+  <!-- Pending identity verification -->
   <section class="mb-12">
-    <h2 class="text-xl font-bold mb-4">Pending Lister Certificates</h2>
+    <h2 class="text-xl font-bold mb-4">Pending Identity Verification</h2>
     {% if pending_docs|length == 0 %}
       <p class="text-sm text-muted-foreground">Nothing waiting for review.</p>
     {% else %}
@@ -36,6 +37,44 @@
                 <td class="px-4 py-3 flex gap-2">
                   <form method="post" action="{{ url_for('verify_user_kyc', user_id=d['id']) }}"><button class="text-xs font-medium bg-green-600 text-white rounded-lg px-3 py-1.5 hover:opacity-90">Approve</button></form>
                   <form method="post" action="{{ url_for('reject_user_kyc', user_id=d['id']) }}"><button class="text-xs font-medium bg-destructive text-white rounded-lg px-3 py-1.5 hover:opacity-90">Reject</button></form>
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    {% endif %}
+  </section>
+
+  <!-- Pending company verification -->
+  <section class="mb-12">
+    <h2 class="text-xl font-bold mb-4">Pending Company Verification <span class="text-sm font-normal text-muted-foreground">(Verified Agent badge)</span></h2>
+    {% if pending_company_docs|length == 0 %}
+      <p class="text-sm text-muted-foreground">Nothing waiting for review.</p>
+    {% else %}
+      <div class="bg-card border border-border rounded-xl overflow-hidden">
+        <table class="w-full text-sm">
+          <thead class="bg-muted/40 text-left text-muted-foreground"><tr>
+            <th class="px-4 py-3 font-medium">Name</th><th class="px-4 py-3 font-medium">Email</th>
+            <th class="px-4 py-3 font-medium">Documents</th>
+            <th class="px-4 py-3 font-medium">Actions</th>
+          </tr></thead>
+          <tbody>
+            {% for d in pending_company_docs %}
+              <tr class="border-t border-border">
+                <td class="px-4 py-3 font-medium">{{ d['name'] }}</td>
+                <td class="px-4 py-3 text-muted-foreground">{{ d['email'] }}</td>
+                <td class="px-4 py-3">
+                  {% for pair in d['docs'].split('||') %}
+                    {% set doc_type, doc_name = pair.split('::', 1) %}
+                    <a href="{{ url_for('static', filename='uploads/' + doc_name) }}" target="_blank" class="text-primary hover:underline block">
+                      {{ 'Incorporation Cert.' if doc_type == 'company_incorporation' else 'Proof of Address' }}
+                    </a>
+                  {% endfor %}
+                </td>
+                <td class="px-4 py-3 flex gap-2">
+                  <form method="post" action="{{ url_for('verify_company_kyc', user_id=d['id']) }}"><button class="text-xs font-medium bg-green-600 text-white rounded-lg px-3 py-1.5 hover:opacity-90">Approve</button></form>
+                  <form method="post" action="{{ url_for('reject_company_kyc', user_id=d['id']) }}"><button class="text-xs font-medium bg-destructive text-white rounded-lg px-3 py-1.5 hover:opacity-90">Reject</button></form>
                 </td>
               </tr>
             {% endfor %}
