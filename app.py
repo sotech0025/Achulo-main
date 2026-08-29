@@ -2,7 +2,9 @@ import os
 import sqlite3
 import re
 import hashlib
+import hmac
 import secrets
+import requests
 from datetime import datetime, timedelta
 from functools import wraps
 from werkzeug.security import generate_password_hash, check_password_hash
@@ -31,6 +33,13 @@ ADMIN_PASSWORD = os.environ.get("ADMIN_PASSWORD", "change-me-admin-password")
 
 # Escrow: percentage of each released payment ACHULO keeps as a platform fee.
 ESCROW_FEE_PERCENT = 2
+
+# Paystack — buyer payments into escrow are collected via Paystack Standard Checkout.
+# Set these in your environment before going live; without them, payment is disabled
+# and pay_listing() tells the buyer so instead of pretending a payment happened.
+PAYSTACK_SECRET_KEY = os.environ.get("PAYSTACK_SECRET_KEY", "")
+PAYSTACK_PUBLIC_KEY = os.environ.get("PAYSTACK_PUBLIC_KEY", "")
+PAYSTACK_BASE_URL = "https://api.paystack.co"
 
 PRICE_PRESETS = [
     {"label": "Any", "min": None, "max": None},
@@ -190,11 +199,13 @@ def init_db():
             amount INTEGER NOT NULL,
             platform_fee INTEGER NOT NULL DEFAULT 0,
             seller_payout INTEGER NOT NULL DEFAULT 0,
-            status TEXT NOT NULL DEFAULT 'pending',
+            status TEXT NOT NULL DEFAULT 'awaiting_payment',
             dispute_reason TEXT,
             transaction_hash TEXT UNIQUE,
+            paystack_reference TEXT UNIQUE,
             created_at TEXT NOT NULL,
             updated_at TEXT NOT NULL,
+            paid_at TEXT,
             released_at TEXT
         );
 
@@ -377,6 +388,48 @@ def admin_required(f):
             return redirect(url_for('dashboard'))
         return f(*args, **kwargs)
     return decorated_function
+# ---------------------------------------------------------------- PAYSTACK
+def paystack_initialize(email, amount_naira, reference, callback_url):
+    """Start a Paystack Standard Checkout session. Returns (authorization_url, error)."""
+    if not PAYSTACK_SECRET_KEY:
+        return None, 'Payments are not configured yet — PAYSTACK_SECRET_KEY is missing.'
+    try:
+        resp = requests.post(
+            f'{PAYSTACK_BASE_URL}/transaction/initialize',
+            headers={'Authorization': f'Bearer {PAYSTACK_SECRET_KEY}', 'Content-Type': 'application/json'},
+            json={
+                'email': email,
+                'amount': int(amount_naira) * 100,  # Paystack expects kobo
+                'reference': reference,
+                'callback_url': callback_url,
+                'currency': 'NGN',
+            },
+            timeout=15
+        )
+        data = resp.json()
+        if resp.status_code == 200 and data.get('status'):
+            return data['data']['authorization_url'], None
+        return None, data.get('message', 'Paystack could not start this payment.')
+    except requests.RequestException as e:
+        return None, f'Could not reach Paystack: {e}'
+
+def paystack_verify(reference):
+    """Verify a transaction by reference. Returns (verified_bool, data_dict, error)."""
+    if not PAYSTACK_SECRET_KEY:
+        return False, None, 'Payments are not configured.'
+    try:
+        resp = requests.get(
+            f'{PAYSTACK_BASE_URL}/transaction/verify/{reference}',
+            headers={'Authorization': f'Bearer {PAYSTACK_SECRET_KEY}'},
+            timeout=15
+        )
+        data = resp.json()
+        if resp.status_code == 200 and data.get('status'):
+            tx_data = data['data']
+            return tx_data.get('status') == 'success', tx_data, None
+        return False, None, data.get('message', 'Verification failed.')
+    except requests.RequestException as e:
+        return False, None, f'Could not reach Paystack: {e}'
 
 # ---------------------------------------------------------------- AUDIT LOGGING
 def log_action(user_id, action, resource_type=None, resource_id=None, details=None):
@@ -1119,22 +1172,100 @@ def pay_listing(listing_id):
         flash('That listing is no longer available.', 'error')
         return redirect(url_for('home'))
 
+    buyer = db.execute('SELECT email FROM users WHERE id = ?', (session['user_id'],)).fetchone()
+
     amount = listing['price']
     platform_fee = round(amount * ESCROW_FEE_PERCENT / 100)
     seller_payout = amount - platform_fee
 
-    tx_hash = secrets.token_hex(16)
+    reference = f"achulo_{secrets.token_hex(12)}"
     now = datetime.now().isoformat()
     db.execute(
         """INSERT INTO transactions
-        (buyer_id, listing_id, amount, platform_fee, seller_payout, status, transaction_hash, created_at, updated_at)
-        VALUES (?, ?, ?, ?, ?, 'pending', ?, ?, ?)""",
-        (session['user_id'], listing_id, amount, platform_fee, seller_payout, tx_hash, now, now)
+        (buyer_id, listing_id, amount, platform_fee, seller_payout, status, transaction_hash, paystack_reference, created_at, updated_at)
+        VALUES (?, ?, ?, ?, ?, 'awaiting_payment', ?, ?, ?, ?)""",
+        (session['user_id'], listing_id, amount, platform_fee, seller_payout, reference, reference, now, now)
     )
     db.commit()
     log_action(session['user_id'], 'escrow_payment_initiated', 'listing', listing_id)
-    flash('Payment placed in escrow. Release it once you\'ve confirmed the property matches the listing.', 'success')
+
+    callback_url = url_for('paystack_callback', _external=True)
+    authorization_url, error = paystack_initialize(buyer['email'], amount, reference, callback_url)
+
+    if error:
+        flash(f'Could not start payment: {error}', 'error')
+        return redirect(url_for('transactions'))
+
+    return redirect(authorization_url)
+
+@app.route('/payments/callback')
+def paystack_callback():
+    """Paystack redirects the buyer here after checkout. This is for UX only —
+    the webhook below is the source of truth for actually crediting escrow."""
+    reference = request.args.get('reference') or request.args.get('trxref')
+    if not reference:
+        flash('No payment reference was returned by Paystack.', 'error')
+        return redirect(url_for('transactions'))
+
+    db = get_db()
+    tx = db.execute('SELECT * FROM transactions WHERE paystack_reference = ?', (reference,)).fetchone()
+    if not tx:
+        flash('That payment could not be matched to a transaction.', 'error')
+        return redirect(url_for('transactions'))
+
+    if tx['status'] != 'awaiting_payment':
+        # Already settled, likely by the webhook — nothing to do.
+        return redirect(url_for('transactions'))
+
+    verified, data, error = paystack_verify(reference)
+    now = datetime.now().isoformat()
+    if verified:
+        db.execute(
+            "UPDATE transactions SET status = 'pending', paid_at = ?, updated_at = ? WHERE id = ?",
+            (now, now, tx['id'])
+        )
+        db.commit()
+        log_action(tx['buyer_id'], 'escrow_payment_confirmed', 'transaction', tx['id'])
+        flash('Payment confirmed — funds are now held in escrow.', 'success')
+    else:
+        db.execute(
+            "UPDATE transactions SET status = 'failed', updated_at = ? WHERE id = ?",
+            (now, tx['id'])
+        )
+        db.commit()
+        flash(f'Payment was not successful{": " + error if error else "."}', 'error')
+
     return redirect(url_for('transactions'))
+
+@app.route('/payments/webhook', methods=['POST'])
+def paystack_webhook():
+    """Paystack's server-to-server notification — the reliable path, independent of
+    whether the buyer's browser makes it back to /payments/callback."""
+    if not PAYSTACK_SECRET_KEY:
+        return jsonify({'status': 'ignored'}), 200
+
+    signature = request.headers.get('X-Paystack-Signature', '')
+    computed = hmac.new(PAYSTACK_SECRET_KEY.encode('utf-8'), request.data, hashlib.sha512).hexdigest()
+    if not hmac.compare_digest(signature, computed):
+        return jsonify({'status': 'invalid signature'}), 401
+
+    event = request.get_json(silent=True) or {}
+    if event.get('event') == 'charge.success':
+        reference = event.get('data', {}).get('reference')
+        db = get_db()
+        tx = db.execute('SELECT * FROM transactions WHERE paystack_reference = ?', (reference,)).fetchone()
+        if tx and tx['status'] == 'awaiting_payment':
+            verified, _, _ = paystack_verify(reference)
+            if verified:
+                now = datetime.now().isoformat()
+                db.execute(
+                    "UPDATE transactions SET status = 'pending', paid_at = ?, updated_at = ? WHERE id = ?",
+                    (now, now, tx['id'])
+                )
+                db.commit()
+                log_action(tx['buyer_id'], 'escrow_payment_confirmed_webhook', 'transaction', tx['id'])
+
+    return jsonify({'status': 'ok'}), 200
 
 @app.route('/transactions/<int:transaction_id>/release', methods=['POST'])
 @login_required

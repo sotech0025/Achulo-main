@@ -25,9 +25,9 @@
             </div>
             <span class="text-xs font-medium px-2.5 py-1 rounded-full
               {{ 'bg-green-50 text-green-700' if t['status'] == 'released'
-                 else ('bg-red-50 text-red-700' if t['status'] in ('disputed','refunded')
+                 else ('bg-red-50 text-red-700' if t['status'] in ('disputed','refunded','failed')
                  else 'bg-yellow-50 text-yellow-700') }}">
-              {{ t['status']|capitalize }}
+              {{ 'Awaiting payment' if t['status'] == 'awaiting_payment' else t['status']|capitalize }}
             </span>
           </div>
 
@@ -70,6 +70,10 @@
             <p class="text-xs text-muted-foreground">Released {{ t['released_at'][:10] if t['released_at'] }}.</p>
           {% elif t['status'] == 'refunded' %}
             <p class="text-xs text-muted-foreground">Refunded in full following a dispute review.</p>
+          {% elif t['status'] == 'awaiting_payment' %}
+            <p class="text-xs text-muted-foreground">Checkout started but not completed yet — payment wasn't confirmed by Paystack.</p>
+          {% elif t['status'] == 'failed' %}
+            <p class="text-xs text-destructive">Payment failed or was cancelled. No funds were held.</p>
           {% endif %}
         </div>
       {% endfor %}
