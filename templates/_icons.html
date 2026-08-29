@@ -76,3 +76,28 @@
   <path d="M9.9 9.9a3 3 0 0 0 4.2 4.2" />
 </svg>
 {% endmacro %}
+
+{% macro heart(cls='h-5 w-5', filled=false) %}
+<svg class="{{ cls }}" viewBox="0 0 24 24" fill="{{ 'currentColor' if filled else 'none' }}" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+  <path d="M12 20.5s-7.5-4.6-10-9.3C.4 8 1.8 4.5 5.2 3.6c2-.5 4 .3 5.2 2 .3.4.9.4 1.2 0 1.2-1.7 3.2-2.5 5.2-2 3.4.9 4.8 4.4 3.2 7.6-2.5 4.7-10 9.3-10 9.3z" />
+</svg>
+{% endmacro %}
+
+{% macro zap(cls='h-5 w-5') %}
+<svg class="{{ cls }}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+  <path d="M13 2 3 14h7l-1 8 10-12h-7l1-8z" />
+</svg>
+{% endmacro %}
+
+{% macro inbox(cls='h-5 w-5') %}
+<svg class="{{ cls }}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+  <path d="M3 12h4.5l1.5 3h6l1.5-3H21" />
+  <path d="M4 5.5h16l1.5 6.5v6a1.5 1.5 0 0 1-1.5 1.5H4a1.5 1.5 0 0 1-1.5-1.5v-6L4 5.5z" />
+</svg>
+{% endmacro %}
+
+{% macro star(cls='h-5 w-5') %}
+<svg class="{{ cls }}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+  <path d="m12 2.5 2.9 6 6.6.9-4.8 4.6 1.1 6.6L12 17.6l-5.8 3 1.1-6.6L2.5 9.4l6.6-.9 2.9-6z" />
+</svg>
+{% endmacro %}

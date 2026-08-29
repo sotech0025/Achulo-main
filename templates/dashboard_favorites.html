@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+{% import "_icons.html" as icons %}
+{% block title %}Saved Properties — {{ app_name }}{% endblock %}
+{% block content %}
+<div class="container mx-auto px-4 md:px-8 max-w-6xl py-10">
+  <h1 class="text-3xl font-serif font-bold mb-1">Saved Properties</h1>
+  <p class="text-muted-foreground text-sm mb-8">Listings you've bookmarked to come back to.</p>
+
+  {% if listings|length == 0 %}
+    <div class="text-center py-20 bg-muted/30 rounded-lg border border-dashed border-border">
+      {{ icons.heart('h-8 w-8 text-muted-foreground mx-auto mb-3') }}
+      <p class="text-sm text-muted-foreground">Nothing saved yet — tap the heart on any listing to keep it here.</p>
+      <a href="{{ url_for('home') }}" class="inline-block mt-4 text-sm font-medium border border-border rounded-lg px-4 py-1.5 hover:border-primary hover:text-primary transition">Browse properties</a>
+    </div>
+  {% else %}
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+      {% for l in listings %}
+        <div class="bg-card border border-border rounded-xl overflow-hidden">
+          <a href="{{ url_for('listing_detail', listing_id=l['id']) }}" class="block aspect-[4/3] bg-muted flex items-center justify-center">
+            {% if l['image_url'] %}
+              <img src="{{ l['image_url'] }}" class="w-full h-full object-cover" alt="{{ l['title'] }}" />
+            {% else %}
+              <span class="text-xs text-muted-foreground">No photo</span>
+            {% endif %}
+          </a>
+          <div class="p-4">
+            <a href="{{ url_for('listing_detail', listing_id=l['id']) }}" class="font-medium text-sm hover:text-primary block mb-1">{{ l['title'] }}</a>
+            <p class="text-primary font-bold text-sm mb-3">₦{{ "{:,}".format(l['price']) }}</p>
+            <form method="post" action="{{ url_for('toggle_favorite', listing_id=l['id']) }}">
+              <input type="hidden" name="next" value="{{ url_for('dashboard_favorites') }}" />
+              <button class="text-xs font-medium text-red-600 hover:underline flex items-center gap-1">
+                {{ icons.heart('h-3.5 w-3.5', filled=true) }} Remove
+              </button>
+            </form>
+          </div>
+        </div>
+      {% endfor %}
+    </div>
+  {% endif %}
+</div>
+{% endblock %}

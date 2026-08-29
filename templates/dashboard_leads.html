@@ -1,0 +1,34 @@
+{% extends "base.html" %}
+{% import "_icons.html" as icons %}
+{% block title %}Seeker Request Alerts — {{ app_name }}{% endblock %}
+{% block content %}
+<div class="container mx-auto px-4 md:px-8 max-w-4xl py-10">
+  <h1 class="text-3xl font-serif font-bold mb-1">Seeker Request Alerts</h1>
+  <p class="text-muted-foreground text-sm mb-8">Buyers looking for a property right now. Message someone whose request matches what you have.</p>
+
+  {% if leads|length == 0 %}
+    <div class="text-center py-20 bg-muted/30 rounded-lg border border-dashed border-border">
+      {{ icons.inbox('h-8 w-8 text-muted-foreground mx-auto mb-3') }}
+      <p class="text-sm text-muted-foreground">No open requests right now — check back soon.</p>
+    </div>
+  {% else %}
+    <div class="space-y-3">
+      {% for l in leads %}
+        <div class="bg-card border border-border rounded-xl p-4 flex items-start justify-between gap-4 flex-wrap">
+          <div>
+            <p class="font-medium text-sm mb-1">{{ l['title'] }}</p>
+            <p class="text-xs text-muted-foreground">{{ l['location_tag'] }}{% if l['state'] %}, {{ l['state'] }}{% endif %}
+              {% if l['min_price'] or l['max_price'] %} · ₦{{ "{:,}".format(l['min_price'] or 0) }}–₦{{ "{:,}".format(l['max_price'] or 0) }}{% endif %}
+              {% if l['bedrooms'] %} · {{ l['bedrooms'] }} bed{% endif %}</p>
+            {% if l['notes'] %}<p class="text-xs text-muted-foreground mt-1">{{ l['notes'] }}</p>{% endif %}
+            <p class="text-[11px] text-muted-foreground mt-2">Posted by {{ l['seeker_name'] }} · {{ l['created_at'][:10] }}</p>
+          </div>
+          <a href="{{ url_for('messages_thread', other_id=l['user_id']) }}" class="shrink-0 inline-flex items-center gap-1.5 text-xs font-medium border border-border rounded-lg px-3 py-1.5 hover:bg-muted/30 transition">
+            {{ icons.chat('h-3.5 w-3.5') }} Message
+          </a>
+        </div>
+      {% endfor %}
+    </div>
+  {% endif %}
+</div>
+{% endblock %}

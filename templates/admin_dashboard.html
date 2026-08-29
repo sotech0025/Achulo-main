@@ -4,7 +4,7 @@
 <div class="container mx-auto px-4 md:px-8 max-w-6xl py-10">
   <h1 class="text-3xl font-serif font-bold mb-8">Admin Dashboard</h1>
 
-  <div class="grid grid-cols-2 md:grid-cols-7 gap-4 mb-10">
+  <div class="grid grid-cols-2 md:grid-cols-8 gap-4 mb-10">
     <div class="bg-card border border-border rounded-xl p-4"><p class="text-xs text-muted-foreground mb-1">Users</p><div class="text-2xl font-bold">{{ stats.total_users }}</div></div>
     <div class="bg-card border border-border rounded-xl p-4"><p class="text-xs text-muted-foreground mb-1">Listings</p><div class="text-2xl font-bold">{{ stats.total_listings }}</div></div>
     <div class="bg-card border border-border rounded-xl p-4"><p class="text-xs text-muted-foreground mb-1">Pending Identity</p><div class="text-2xl font-bold text-yellow-600">{{ stats.pending_kyc }}</div></div>
@@ -12,6 +12,7 @@
     <div class="bg-card border border-border rounded-xl p-4"><p class="text-xs text-muted-foreground mb-1">Pending Listings</p><div class="text-2xl font-bold text-yellow-600">{{ stats.pending_reviews }}</div></div>
     <div class="bg-card border border-border rounded-xl p-4"><p class="text-xs text-muted-foreground mb-1">Flagged</p><div class="text-2xl font-bold text-destructive">{{ stats.flagged_listings }}</div></div>
     <div class="bg-card border border-border rounded-xl p-4"><p class="text-xs text-muted-foreground mb-1">Appeals</p><div class="text-2xl font-bold text-yellow-600">{{ stats.pending_appeals }}</div></div>
+    <div class="bg-card border border-border rounded-xl p-4"><p class="text-xs text-muted-foreground mb-1">Disputes</p><div class="text-2xl font-bold text-destructive">{{ stats.disputed_transactions }}</div></div>
   </div>
 
   <!-- Pending identity verification -->
@@ -80,6 +81,42 @@
             {% endfor %}
           </tbody>
         </table>
+      </div>
+    {% endif %}
+  </section>
+
+  <!-- Disputed escrow transactions -->
+  <section class="mb-12">
+    <h2 class="text-xl font-bold mb-4">Disputed Escrow Transactions</h2>
+    {% if disputed_transactions|length == 0 %}
+      <p class="text-sm text-muted-foreground">No open disputes.</p>
+    {% else %}
+      <div class="space-y-4">
+        {% for t in disputed_transactions %}
+          <div class="bg-card border border-red-200 rounded-xl p-5">
+            <div class="flex items-start justify-between gap-4 flex-wrap mb-2">
+              <div>
+                <a href="{{ url_for('listing_detail', listing_id=t['listing_id']) }}" class="font-medium hover:text-primary">{{ t['listing_title'] }}</a>
+                <p class="text-xs text-muted-foreground mt-0.5">Buyer: {{ t['buyer_name'] }} · Lister: {{ t['seller_name'] }}</p>
+              </div>
+              <span class="text-xs font-medium px-2.5 py-1 rounded-full bg-red-50 text-red-700">Disputed</span>
+            </div>
+            <div class="grid grid-cols-3 gap-3 text-sm mb-3">
+              <div><p class="text-xs text-muted-foreground">Amount</p><p class="font-semibold">₦{{ "{:,}".format(t['amount']) }}</p></div>
+              <div><p class="text-xs text-muted-foreground">Fee ({{ fee_percent }}%)</p><p class="font-semibold">₦{{ "{:,}".format(t['platform_fee']) }}</p></div>
+              <div><p class="text-xs text-muted-foreground">Lister would get</p><p class="font-semibold">₦{{ "{:,}".format(t['seller_payout']) }}</p></div>
+            </div>
+            <p class="text-xs text-red-700 bg-red-50 border border-red-200 rounded-lg px-3 py-2 mb-3">{{ t['dispute_reason'] }}</p>
+            <div class="flex gap-2">
+              <form method="post" action="{{ url_for('admin_release_escrow', transaction_id=t['id']) }}" onsubmit="return confirm('Release funds to the lister? This can\'t be undone.');">
+                <button class="text-xs font-medium bg-green-600 text-white rounded-lg px-3 py-1.5 hover:opacity-90">Release to lister</button>
+              </form>
+              <form method="post" action="{{ url_for('admin_refund_escrow', transaction_id=t['id']) }}" onsubmit="return confirm('Refund the buyer in full? This can\'t be undone.');">
+                <button class="text-xs font-medium bg-destructive text-white rounded-lg px-3 py-1.5 hover:opacity-90">Refund buyer</button>
+              </form>
+            </div>
+          </div>
+        {% endfor %}
       </div>
     {% endif %}
   </section>

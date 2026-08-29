@@ -29,6 +29,9 @@ app.config['MAX_CONTENT_LENGTH'] = MAX_FILE_SIZE
 ADMIN_EMAIL = os.environ.get("ADMIN_EMAIL", "admin@achulo.test")
 ADMIN_PASSWORD = os.environ.get("ADMIN_PASSWORD", "change-me-admin-password")
 
+# Escrow: percentage of each released payment ACHULO keeps as a platform fee.
+ESCROW_FEE_PERCENT = 2
+
 PRICE_PRESETS = [
     {"label": "Any", "min": None, "max": None},
     {"label": "Under ₦500k", "min": None, "max": 500_000},
@@ -185,10 +188,14 @@ def init_db():
             buyer_id INTEGER NOT NULL REFERENCES users(id),
             listing_id INTEGER NOT NULL REFERENCES listings(id),
             amount INTEGER NOT NULL,
+            platform_fee INTEGER NOT NULL DEFAULT 0,
+            seller_payout INTEGER NOT NULL DEFAULT 0,
             status TEXT NOT NULL DEFAULT 'pending',
+            dispute_reason TEXT,
             transaction_hash TEXT UNIQUE,
             created_at TEXT NOT NULL,
-            updated_at TEXT NOT NULL
+            updated_at TEXT NOT NULL,
+            released_at TEXT
         );
 
         CREATE TABLE IF NOT EXISTS reports (
@@ -261,6 +268,28 @@ def init_db():
             admin_response TEXT,
             created_at TEXT NOT NULL,
             resolved_at TEXT
+        );
+
+        CREATE TABLE IF NOT EXISTS favorites (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER NOT NULL REFERENCES users(id),
+            listing_id INTEGER NOT NULL REFERENCES listings(id),
+            created_at TEXT NOT NULL,
+            UNIQUE(user_id, listing_id)
+        );
+
+        CREATE TABLE IF NOT EXISTS property_requests (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER NOT NULL REFERENCES users(id),
+            title TEXT NOT NULL,
+            location_tag TEXT,
+            state TEXT,
+            min_price INTEGER,
+            max_price INTEGER,
+            bedrooms INTEGER,
+            notes TEXT,
+            status TEXT NOT NULL DEFAULT 'open',
+            created_at TEXT NOT NULL
         );
         """
     )
@@ -965,7 +994,14 @@ def listing_detail(listing_id):
     owner = db.execute('SELECT id, name, phone, kyc_status, company_status, account_status FROM users WHERE id = ?', (listing['owner_id'],)).fetchone()
     images = db.execute('SELECT * FROM listing_images WHERE listing_id = ? ORDER BY id', (listing_id,)).fetchall()
 
-    return render_template('listing.html', listing=listing, owner=owner, images=images)
+    is_favorited = False
+    if 'user_id' in session:
+        is_favorited = db.execute(
+            'SELECT 1 FROM favorites WHERE user_id = ? AND listing_id = ?',
+            (session['user_id'], listing_id)
+        ).fetchone() is not None
+
+    return render_template('listing.html', listing=listing, owner=owner, images=images, is_favorited=is_favorited)
 
 @app.route('/listing/<int:listing_id>/report', methods=['POST'])
 def report_listing(listing_id):
@@ -1083,16 +1119,70 @@ def pay_listing(listing_id):
         flash('That listing is no longer available.', 'error')
         return redirect(url_for('home'))
 
+    amount = listing['price']
+    platform_fee = round(amount * ESCROW_FEE_PERCENT / 100)
+    seller_payout = amount - platform_fee
+
     tx_hash = secrets.token_hex(16)
     now = datetime.now().isoformat()
     db.execute(
-        """INSERT INTO transactions (buyer_id, listing_id, amount, status, transaction_hash, created_at, updated_at)
-        VALUES (?, ?, ?, 'pending', ?, ?, ?)""",
-        (session['user_id'], listing_id, listing['price'], tx_hash, now, now)
+        """INSERT INTO transactions
+        (buyer_id, listing_id, amount, platform_fee, seller_payout, status, transaction_hash, created_at, updated_at)
+        VALUES (?, ?, ?, ?, ?, 'pending', ?, ?, ?)""",
+        (session['user_id'], listing_id, amount, platform_fee, seller_payout, tx_hash, now, now)
     )
     db.commit()
     log_action(session['user_id'], 'escrow_payment_initiated', 'listing', listing_id)
-    flash('Payment placed in escrow. It will be released once you confirm the property.', 'success')
+    flash('Payment placed in escrow. Release it once you\'ve confirmed the property matches the listing.', 'success')
+    return redirect(url_for('transactions'))
+
+@app.route('/transactions/<int:transaction_id>/release', methods=['POST'])
+@login_required
+def release_escrow(transaction_id):
+    db = get_db()
+    tx = db.execute(
+        "SELECT * FROM transactions WHERE id = ? AND buyer_id = ? AND status = 'pending'",
+        (transaction_id, session['user_id'])
+    ).fetchone()
+    if not tx:
+        flash('That transaction could not be found or has already been settled.', 'error')
+        return redirect(url_for('transactions'))
+
+    now = datetime.now().isoformat()
+    db.execute(
+        "UPDATE transactions SET status = 'released', released_at = ?, updated_at = ? WHERE id = ?",
+        (now, now, transaction_id)
+    )
+    db.commit()
+    log_action(session['user_id'], 'escrow_released', 'transaction', transaction_id)
+    flash(f'Funds released — the listing agent receives ₦{tx["seller_payout"]:,} (₦{tx["platform_fee"]:,} platform fee).', 'success')
+    return redirect(url_for('transactions'))
+
+@app.route('/transactions/<int:transaction_id>/dispute', methods=['POST'])
+@login_required
+def dispute_escrow(transaction_id):
+    db = get_db()
+    tx = db.execute(
+        "SELECT * FROM transactions WHERE id = ? AND buyer_id = ? AND status = 'pending'",
+        (transaction_id, session['user_id'])
+    ).fetchone()
+    if not tx:
+        flash('That transaction could not be found or has already been settled.', 'error')
+        return redirect(url_for('transactions'))
+
+    reason = sanitize_input(request.form.get('reason', ''))
+    if not reason:
+        flash('Please describe the problem so an admin can review it.', 'error')
+        return redirect(url_for('transactions'))
+
+    now = datetime.now().isoformat()
+    db.execute(
+        "UPDATE transactions SET status = 'disputed', dispute_reason = ?, updated_at = ? WHERE id = ?",
+        (reason, now, transaction_id)
+    )
+    db.commit()
+    log_action(session['user_id'], 'escrow_disputed', 'transaction', transaction_id, reason)
+    flash('Dispute submitted. Your funds stay in escrow while an admin reviews it.', 'success')
     return redirect(url_for('transactions'))
 
 @app.route('/transactions')
@@ -1105,7 +1195,111 @@ def transactions():
            WHERE t.buyer_id = ? ORDER BY t.created_at DESC""",
         (session['user_id'],)
     ).fetchall()
-    return render_template('transactions.html', transactions=rows)
+    return render_template('transactions.html', transactions=rows, fee_percent=ESCROW_FEE_PERCENT)
+
+# ---------------------------------------------------------------- SAVED PROPERTIES (favorites)
+@app.route('/listing/<int:listing_id>/favorite', methods=['POST'])
+@login_required
+def toggle_favorite(listing_id):
+    db = get_db()
+    listing = db.execute('SELECT id FROM listings WHERE id = ?', (listing_id,)).fetchone()
+    if not listing:
+        flash('That listing is no longer available.', 'error')
+        return redirect(url_for('home'))
+
+    existing = db.execute(
+        'SELECT id FROM favorites WHERE user_id = ? AND listing_id = ?',
+        (session['user_id'], listing_id)
+    ).fetchone()
+
+    if existing:
+        db.execute('DELETE FROM favorites WHERE id = ?', (existing['id'],))
+        flash('Removed from saved properties.', 'success')
+    else:
+        db.execute(
+            'INSERT INTO favorites (user_id, listing_id, created_at) VALUES (?, ?, ?)',
+            (session['user_id'], listing_id, datetime.now().isoformat())
+        )
+        flash('Saved to your properties.', 'success')
+    db.commit()
+
+    next_url = request.form.get('next') or url_for('listing_detail', listing_id=listing_id)
+    return redirect(next_url)
+
+@app.route('/dashboard/favorites')
+@login_required
+def dashboard_favorites():
+    db = get_db()
+    listings = db.execute(
+        """SELECT l.*, f.created_at AS saved_at FROM favorites f
+           JOIN listings l ON l.id = f.listing_id
+           WHERE f.user_id = ? ORDER BY f.created_at DESC""",
+        (session['user_id'],)
+    ).fetchall()
+    return render_template('dashboard_favorites.html', listings=listings)
+
+# ---------------------------------------------------------------- PROPERTY REQUESTS (buyer "leads")
+@app.route('/dashboard/requests', methods=['GET', 'POST'])
+@login_required
+def dashboard_requests():
+    db = get_db()
+    if request.method == 'POST':
+        title = sanitize_input(request.form.get('title', ''))
+        location_tag = sanitize_input(request.form.get('location_tag', ''))
+        state = request.form.get('state', '')
+        min_price = request.form.get('min_price', type=int)
+        max_price = request.form.get('max_price', type=int)
+        bedrooms = request.form.get('bedrooms', type=int)
+        notes = sanitize_input(request.form.get('notes', ''))
+
+        if not title or not location_tag:
+            flash('Please describe what you\'re looking for and where.', 'error')
+        else:
+            db.execute(
+                """INSERT INTO property_requests
+                (user_id, title, location_tag, state, min_price, max_price, bedrooms, notes, status, created_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'open', ?)""",
+                (session['user_id'], title, location_tag, state, min_price, max_price, bedrooms, notes, datetime.now().isoformat())
+            )
+            db.commit()
+            flash('Request posted — listing agents in that area will see it.', 'success')
+        return redirect(url_for('dashboard_requests'))
+
+    requests_rows = db.execute(
+        'SELECT * FROM property_requests WHERE user_id = ? ORDER BY created_at DESC',
+        (session['user_id'],)
+    ).fetchall()
+    return render_template('dashboard_requests.html', requests=requests_rows)
+
+@app.route('/dashboard/requests/<int:request_id>/close', methods=['POST'])
+@login_required
+def close_request(request_id):
+    db = get_db()
+    row = db.execute(
+        'SELECT id FROM property_requests WHERE id = ? AND user_id = ?',
+        (request_id, session['user_id'])
+    ).fetchone()
+    if not row:
+        flash('That request could not be found.', 'error')
+        return redirect(url_for('dashboard_requests'))
+
+    db.execute("UPDATE property_requests SET status = 'closed' WHERE id = ?", (request_id,))
+    db.commit()
+    flash('Request closed.', 'success')
+    return redirect(url_for('dashboard_requests'))
+
+# ---------------------------------------------------------------- LEADS (seeker request alerts, for listers)
+@app.route('/dashboard/leads')
+@login_required
+@seller_required
+def dashboard_leads():
+    db = get_db()
+    leads = db.execute(
+        """SELECT r.*, u.name AS seeker_name FROM property_requests r
+           JOIN users u ON u.id = r.user_id
+           WHERE r.status = 'open' ORDER BY r.created_at DESC LIMIT 50"""
+    ).fetchall()
+    return render_template('dashboard_leads.html', leads=leads)
 
 # ---------------------------------------------------------------- ACCOUNT REVIEW / APPEALS
 @app.route('/appeal', methods=['GET', 'POST'])
@@ -1145,6 +1339,7 @@ def admin_dashboard():
         'pending_reviews': db.execute("SELECT COUNT(*) as count FROM listings WHERE verification_status = 'pending_review'").fetchone()['count'],
         'flagged_listings': db.execute("SELECT COUNT(*) as count FROM listings WHERE flagged_for_review = 1").fetchone()['count'],
         'pending_appeals': db.execute("SELECT COUNT(*) as count FROM appeals WHERE status = 'pending'").fetchone()['count'],
+        'disputed_transactions': db.execute("SELECT COUNT(*) as count FROM transactions WHERE status = 'disputed'").fetchone()['count'],
     }
 
     pending_docs = db.execute(
@@ -1186,11 +1381,23 @@ def admin_dashboard():
            WHERE a.status = 'pending' ORDER BY a.created_at DESC"""
     ).fetchall()
 
+    disputed_transactions = db.execute(
+        """SELECT t.*, l.title AS listing_title, buyer.name AS buyer_name,
+             seller.name AS seller_name
+           FROM transactions t
+           JOIN listings l ON l.id = t.listing_id
+           JOIN users buyer ON buyer.id = t.buyer_id
+           JOIN users seller ON seller.id = l.owner_id
+           WHERE t.status = 'disputed'
+           ORDER BY t.updated_at DESC"""
+    ).fetchall()
+
     return render_template(
         'admin_dashboard.html', stats=stats, pending_docs=pending_docs,
         pending_company_docs=pending_company_docs,
         pending_listings=pending_listings, all_users=all_users,
-        all_listings=all_listings, appeals=appeals
+        all_listings=all_listings, appeals=appeals,
+        disputed_transactions=disputed_transactions, fee_percent=ESCROW_FEE_PERCENT
     )
 
 @app.route('/admin/verify-user/<int:user_id>', methods=['POST'])
@@ -1415,6 +1622,44 @@ def resolve_appeal(appeal_id):
     db.commit()
     log_action(session['user_id'], 'appeal_resolved', 'appeal', appeal_id, new_status)
     flash(f'Appeal {new_status}.', 'success')
+    return redirect(url_for('admin_dashboard'))
+
+@app.route('/admin/transactions/<int:transaction_id>/release', methods=['POST'])
+@admin_required
+def admin_release_escrow(transaction_id):
+    db = get_db()
+    tx = db.execute("SELECT * FROM transactions WHERE id = ? AND status = 'disputed'", (transaction_id,)).fetchone()
+    if not tx:
+        flash('That transaction could not be found.', 'error')
+        return redirect(url_for('admin_dashboard'))
+
+    now = datetime.now().isoformat()
+    db.execute(
+        "UPDATE transactions SET status = 'released', released_at = ?, updated_at = ? WHERE id = ?",
+        (now, now, transaction_id)
+    )
+    db.commit()
+    log_action(session['user_id'], 'admin_escrow_released', 'transaction', transaction_id)
+    flash(f'Dispute resolved in favor of the lister — ₦{tx["seller_payout"]:,} released.', 'success')
+    return redirect(url_for('admin_dashboard'))
+
+@app.route('/admin/transactions/<int:transaction_id>/refund', methods=['POST'])
+@admin_required
+def admin_refund_escrow(transaction_id):
+    db = get_db()
+    tx = db.execute("SELECT * FROM transactions WHERE id = ? AND status = 'disputed'", (transaction_id,)).fetchone()
+    if not tx:
+        flash('That transaction could not be found.', 'error')
+        return redirect(url_for('admin_dashboard'))
+
+    now = datetime.now().isoformat()
+    db.execute(
+        "UPDATE transactions SET status = 'refunded', updated_at = ? WHERE id = ?",
+        (now, transaction_id)
+    )
+    db.commit()
+    log_action(session['user_id'], 'admin_escrow_refunded', 'transaction', transaction_id)
+    flash(f'Dispute resolved in favor of the buyer — ₦{tx["amount"]:,} refunded.', 'success')
     return redirect(url_for('admin_dashboard'))
 
 @app.errorhandler(403)

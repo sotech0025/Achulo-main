@@ -1,0 +1,82 @@
+{% extends "base.html" %}
+{% import "_icons.html" as icons %}
+{% block title %}My Property Requests — {{ app_name }}{% endblock %}
+{% block content %}
+<div class="container mx-auto px-4 md:px-8 max-w-3xl py-10">
+  <h1 class="text-3xl font-serif font-bold mb-1">My Property Requests</h1>
+  <p class="text-muted-foreground text-sm mb-8">Can't find what you're looking for? Post what you need and listing agents in that area will see it.</p>
+
+  <div class="bg-card border border-border rounded-2xl p-6 mb-8">
+    <h2 class="font-bold mb-4">Post a request</h2>
+    <form method="post" class="space-y-4">
+      <div>
+        <label class="text-sm font-medium block mb-1">What are you looking for?</label>
+        <input type="text" name="title" placeholder="e.g. 2-bedroom flat, self-contained" required
+               class="w-full h-11 px-3 rounded-md border border-border focus:outline-none focus:ring-2 focus:ring-primary" />
+      </div>
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div>
+          <label class="text-sm font-medium block mb-1">Location</label>
+          <input type="text" name="location_tag" placeholder="e.g. Lekki Phase 1" required
+                 class="w-full h-11 px-3 rounded-md border border-border focus:outline-none focus:ring-2 focus:ring-primary" />
+        </div>
+        <div>
+          <label class="text-sm font-medium block mb-1">State</label>
+          <input type="text" name="state" placeholder="e.g. Lagos"
+                 class="w-full h-11 px-3 rounded-md border border-border focus:outline-none focus:ring-2 focus:ring-primary" />
+        </div>
+      </div>
+      <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <div>
+          <label class="text-sm font-medium block mb-1">Min budget (₦)</label>
+          <input type="number" name="min_price" min="0" placeholder="0"
+                 class="w-full h-11 px-3 rounded-md border border-border focus:outline-none focus:ring-2 focus:ring-primary" />
+        </div>
+        <div>
+          <label class="text-sm font-medium block mb-1">Max budget (₦)</label>
+          <input type="number" name="max_price" min="0" placeholder="0"
+                 class="w-full h-11 px-3 rounded-md border border-border focus:outline-none focus:ring-2 focus:ring-primary" />
+        </div>
+        <div>
+          <label class="text-sm font-medium block mb-1">Bedrooms</label>
+          <input type="number" name="bedrooms" min="0" placeholder="Any"
+                 class="w-full h-11 px-3 rounded-md border border-border focus:outline-none focus:ring-2 focus:ring-primary" />
+        </div>
+      </div>
+      <div>
+        <label class="text-sm font-medium block mb-1">Anything else? (optional)</label>
+        <textarea name="notes" rows="3" placeholder="Move-in date, must-haves, etc."
+                  class="w-full px-3 py-2 rounded-md border border-border focus:outline-none focus:ring-2 focus:ring-primary"></textarea>
+      </div>
+      <button type="submit" class="w-full h-11 rounded-lg bg-primary text-primary-foreground font-medium hover:opacity-90 transition">Post request</button>
+    </form>
+  </div>
+
+  <h2 class="font-bold mb-4">Your requests</h2>
+  {% if requests|length == 0 %}
+    <p class="text-sm text-muted-foreground">You haven't posted any requests yet.</p>
+  {% else %}
+    <div class="space-y-3">
+      {% for r in requests %}
+        <div class="bg-card border border-border rounded-xl p-4 flex items-start justify-between gap-4 flex-wrap">
+          <div>
+            <div class="flex items-center gap-2 mb-1">
+              <p class="font-medium text-sm">{{ r['title'] }}</p>
+              <span class="text-[10px] font-medium px-2 py-0.5 rounded-full {{ 'bg-green-50 text-green-700' if r['status'] == 'open' else 'bg-muted text-muted-foreground' }}">{{ r['status']|capitalize }}</span>
+            </div>
+            <p class="text-xs text-muted-foreground">{{ r['location_tag'] }}{% if r['state'] %}, {{ r['state'] }}{% endif %}
+              {% if r['min_price'] or r['max_price'] %} · ₦{{ "{:,}".format(r['min_price'] or 0) }}–₦{{ "{:,}".format(r['max_price'] or 0) }}{% endif %}
+              {% if r['bedrooms'] %} · {{ r['bedrooms'] }} bed{% endif %}</p>
+            {% if r['notes'] %}<p class="text-xs text-muted-foreground mt-1">{{ r['notes'] }}</p>{% endif %}
+          </div>
+          {% if r['status'] == 'open' %}
+            <form method="post" action="{{ url_for('close_request', request_id=r['id']) }}">
+              <button class="text-xs font-medium border border-border rounded-lg px-3 py-1.5 hover:bg-muted/30 transition">Mark closed</button>
+            </form>
+          {% endif %}
+        </div>
+      {% endfor %}
+    </div>
+  {% endif %}
+</div>
+{% endblock %}

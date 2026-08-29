@@ -1,8 +1,13 @@
 {% extends "base.html" %}
+{% import "_icons.html" as icons %}
 {% block title %}Transactions — {{ app_name }}{% endblock %}
 {% block content %}
 <div class="container mx-auto px-4 md:px-8 max-w-5xl py-10">
-  <h1 class="text-3xl font-serif font-bold mb-8">Transactions</h1>
+  <h1 class="text-3xl font-serif font-bold mb-1">Transactions</h1>
+  <p class="text-muted-foreground text-sm mb-8">
+    Payments you place go into escrow first. ACHULO keeps a {{ fee_percent }}% platform fee when funds are released
+    to the listing agent — the rest goes to you if you're refunded.
+  </p>
 
   {% if transactions|length == 0 %}
     <div class="text-center py-16 bg-muted/30 rounded-2xl border border-border">
@@ -10,33 +15,64 @@
       <a href="{{ url_for('home') }}" class="inline-block mt-4 text-sm font-medium bg-primary text-primary-foreground rounded-lg px-4 py-2 hover:opacity-90 transition">Browse properties</a>
     </div>
   {% else %}
-    <div class="overflow-x-auto bg-card border border-border rounded-xl">
-      <table class="w-full text-sm">
-        <thead class="bg-muted/40 text-left text-muted-foreground">
-          <tr>
-            <th class="px-4 py-3 font-medium">Listing</th>
-            <th class="px-4 py-3 font-medium">Amount</th>
-            <th class="px-4 py-3 font-medium">Status</th>
-            <th class="px-4 py-3 font-medium">Date</th>
-          </tr>
-        </thead>
-        <tbody>
-          {% for t in transactions %}
-            <tr class="border-t border-border">
-              <td class="px-4 py-3">
-                <a href="{{ url_for('listing_detail', listing_id=t['listing_id']) }}" class="hover:text-primary font-medium">{{ t['title'] }}</a>
-              </td>
-              <td class="px-4 py-3 font-medium">&#8358;{{ "{:,}".format(t['amount']) }}</td>
-              <td class="px-4 py-3">
-                <span class="text-xs font-medium px-2 py-0.5 rounded-full {{ 'bg-green-50 text-green-700' if t['status'] == 'released' else 'bg-yellow-50 text-yellow-700' }}">
-                  {{ t['status'] }}
-                </span>
-              </td>
-              <td class="px-4 py-3 text-muted-foreground">{{ t['created_at'][:10] }}</td>
-            </tr>
-          {% endfor %}
-        </tbody>
-      </table>
+    <div class="space-y-4">
+      {% for t in transactions %}
+        <div class="bg-card border border-border rounded-xl p-5">
+          <div class="flex items-start justify-between gap-4 flex-wrap mb-3">
+            <div>
+              <a href="{{ url_for('listing_detail', listing_id=t['listing_id']) }}" class="font-medium hover:text-primary">{{ t['title'] }}</a>
+              <p class="text-xs text-muted-foreground mt-0.5">{{ t['created_at'][:10] }} · Ref {{ t['transaction_hash'][:10] }}</p>
+            </div>
+            <span class="text-xs font-medium px-2.5 py-1 rounded-full
+              {{ 'bg-green-50 text-green-700' if t['status'] == 'released'
+                 else ('bg-red-50 text-red-700' if t['status'] in ('disputed','refunded')
+                 else 'bg-yellow-50 text-yellow-700') }}">
+              {{ t['status']|capitalize }}
+            </span>
+          </div>
+
+          <div class="grid grid-cols-3 gap-3 text-sm mb-4">
+            <div>
+              <p class="text-xs text-muted-foreground">Amount in escrow</p>
+              <p class="font-semibold">₦{{ "{:,}".format(t['amount']) }}</p>
+            </div>
+            <div>
+              <p class="text-xs text-muted-foreground">Platform fee ({{ fee_percent }}%)</p>
+              <p class="font-semibold">₦{{ "{:,}".format(t['platform_fee']) }}</p>
+            </div>
+            <div>
+              <p class="text-xs text-muted-foreground">Lister receives</p>
+              <p class="font-semibold">₦{{ "{:,}".format(t['seller_payout']) }}</p>
+            </div>
+          </div>
+
+          {% if t['status'] == 'pending' %}
+            <div class="flex flex-wrap gap-2 items-start border-t border-border pt-4">
+              <form method="post" action="{{ url_for('release_escrow', transaction_id=t['id']) }}" onsubmit="return confirm('Release funds to the listing agent? This can\'t be undone.');">
+                <button class="text-xs font-medium bg-primary text-primary-foreground rounded-lg px-4 py-2 hover:opacity-90 transition">
+                  I've confirmed the property — release funds
+                </button>
+              </form>
+              <details class="flex-1 min-w-[220px]">
+                <summary class="text-xs font-medium text-destructive cursor-pointer px-1 py-2">Report a problem instead</summary>
+                <form method="post" action="{{ url_for('dispute_escrow', transaction_id=t['id']) }}" class="mt-2 space-y-2">
+                  <textarea name="reason" rows="2" required placeholder="What went wrong?"
+                            class="w-full text-sm px-3 py-2 rounded-md border border-border focus:outline-none focus:ring-2 focus:ring-primary"></textarea>
+                  <button class="text-xs font-medium border border-destructive text-destructive rounded-lg px-4 py-2 hover:bg-red-50 transition">Submit dispute</button>
+                </form>
+              </details>
+            </div>
+          {% elif t['status'] == 'disputed' %}
+            <div class="bg-red-50 border border-red-200 rounded-lg px-3 py-2 text-xs text-red-800">
+              Disputed: {{ t['dispute_reason'] }} — an admin is reviewing this.
+            </div>
+          {% elif t['status'] == 'released' %}
+            <p class="text-xs text-muted-foreground">Released {{ t['released_at'][:10] if t['released_at'] }}.</p>
+          {% elif t['status'] == 'refunded' %}
+            <p class="text-xs text-muted-foreground">Refunded in full following a dispute review.</p>
+          {% endif %}
+        </div>
+      {% endfor %}
     </div>
   {% endif %}
 </div>
