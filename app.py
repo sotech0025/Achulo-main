@@ -41,6 +41,15 @@ PAYSTACK_SECRET_KEY = os.environ.get("PAYSTACK_SECRET_KEY", "")
 PAYSTACK_PUBLIC_KEY = os.environ.get("PAYSTACK_PUBLIC_KEY", "")
 PAYSTACK_BASE_URL = "https://api.paystack.co"
 
+# Prembly (Identitypass) — instant NIN/BVN identity verification.
+# NOTE: endpoint paths below follow Prembly's standard REST pattern from their public
+# docs, but Prembly does update their API surface — confirm the exact paths and
+# response field names in your Prembly dashboard before going live. Without these
+# two env vars set, verify_nin_bvn() fails gracefully rather than faking a match.
+PREMBLY_API_KEY = os.environ.get("PREMBLY_API_KEY", "")
+PREMBLY_APP_ID = os.environ.get("PREMBLY_APP_ID", "")
+PREMBLY_BASE_URL = "https://api.prembly.com/identitypass/verification"
+
 PRICE_PRESETS = [
     {"label": "Any", "min": None, "max": None},
     {"label": "Under ₦500k", "min": None, "max": 500_000},
@@ -144,6 +153,10 @@ def init_db():
             kyc_document_url TEXT,
             kyc_reference_id TEXT,
             company_status TEXT NOT NULL DEFAULT 'unverified',
+            kyc_method TEXT,
+            kyc_verified_number_type TEXT,
+            kyc_verified_number_masked TEXT,
+            kyc_verified_name TEXT,
             nin TEXT UNIQUE,
             bvn TEXT UNIQUE,
             cac TEXT UNIQUE,
@@ -431,6 +444,47 @@ def paystack_verify(reference):
     except requests.RequestException as e:
         return False, None, f'Could not reach Paystack: {e}'
 
+# ---------------------------------------------------------------- PREMBLY (NIN/BVN)
+def prembly_verify(number_type, number):
+    """Look up a NIN or BVN via Prembly. Returns (verified_bool, verified_name_or_None, error_or_None).
+    number_type is 'nin' or 'bvn'. The raw number is sent to Prembly for this one call
+    and never persisted — callers should only store prembly_mask(number) afterward."""
+    if not PREMBLY_API_KEY or not PREMBLY_APP_ID:
+        return False, None, 'NIN/BVN verification is not configured yet — PREMBLY_API_KEY / PREMBLY_APP_ID missing.'
+
+    endpoint = 'nin' if number_type == 'nin' else 'bvn'
+    try:
+        resp = requests.post(
+            f'{PREMBLY_BASE_URL}/{endpoint}',
+            headers={
+                'x-api-key': PREMBLY_API_KEY,
+                'app-id': PREMBLY_APP_ID,
+                'Content-Type': 'application/json',
+            },
+            json={'number': number},
+            timeout=15
+        )
+        data = resp.json()
+        # Prembly's success shape is generally {"status": true, "detail": "...", "response_code": "00",
+        # "data": {"first_name": ..., "last_name": ..., ...}} — confirm exact field names against your
+        # dashboard docs, as these vary slightly by product tier.
+        if resp.status_code == 200 and data.get('status'):
+            person = data.get('data', {}) or {}
+            first = person.get('first_name', '') or person.get('firstName', '')
+            last = person.get('last_name', '') or person.get('lastName', '')
+            verified_name = f'{first} {last}'.strip() or None
+            return True, verified_name, None
+        return False, None, data.get('detail') or data.get('message') or 'No match found for that number.'
+    except requests.RequestException as e:
+        return False, None, f'Could not reach Prembly: {e}'
+
+def prembly_mask(number):
+    """Never store the raw NIN/BVN — keep only a display-safe masked tail."""
+    digits = re.sub(r'\D', '', number or '')
+    if len(digits) < 4:
+        return '****'
+    return '*' * (len(digits) - 4) + digits[-4:]
+
 # ---------------------------------------------------------------- AUDIT LOGGING
 def log_action(user_id, action, resource_type=None, resource_id=None, details=None):
     """Log user actions for security audit"""
@@ -690,11 +744,46 @@ def verify_identity_submit():
         VALUES (?, 'identity_document', ?, ?, ?)""",
         (session['user_id'], filepath, filename, datetime.now().isoformat())
     )
-    db.execute("UPDATE users SET kyc_status = 'pending' WHERE id = ?", (session['user_id'],))
+    db.execute("UPDATE users SET kyc_status = 'pending', kyc_method = 'document' WHERE id = ?", (session['user_id'],))
     db.commit()
 
     log_action(session['user_id'], 'identity_document_uploaded', 'document', None)
     flash('Identity document submitted. An admin will review it shortly.', 'success')
+    return redirect(url_for('dashboard_kyc'))
+
+@app.route('/dashboard/verification/identity/instant', methods=['POST'])
+@login_required
+def verify_identity_instant():
+    """Instant identity verification via Prembly NIN/BVN lookup — no admin review needed
+    if the number matches. Falls back with a clear error if Prembly isn't configured."""
+    number_type = request.form.get('number_type')
+    number = re.sub(r'\D', '', request.form.get('number', ''))
+
+    if number_type not in ('nin', 'bvn'):
+        flash('Please choose NIN or BVN.', 'error')
+        return redirect(url_for('dashboard_kyc'))
+
+    expected_len = 11
+    if len(number) != expected_len:
+        flash(f'{number_type.upper()} must be {expected_len} digits.', 'error')
+        return redirect(url_for('dashboard_kyc'))
+
+    verified, verified_name, error = prembly_verify(number_type, number)
+    db = get_db()
+
+    if not verified:
+        flash(f'Verification failed: {error}', 'error')
+        return redirect(url_for('dashboard_kyc'))
+
+    db.execute(
+        """UPDATE users SET kyc_status = 'verified', kyc_method = 'nin_bvn',
+           kyc_verified_number_type = ?, kyc_verified_number_masked = ?, kyc_verified_name = ?
+           WHERE id = ?""",
+        (number_type, prembly_mask(number), verified_name, session['user_id'])
+    )
+    db.commit()
+    log_action(session['user_id'], 'identity_verified_instant', 'user', session['user_id'], f'{number_type.upper()} verified via Prembly')
+    flash(f"Identity verified instantly via your {number_type.upper()}{' (' + verified_name + ')' if verified_name else ''}.", 'success')
     return redirect(url_for('dashboard_kyc'))
 
 @app.route('/dashboard/verification/company', methods=['POST'])
