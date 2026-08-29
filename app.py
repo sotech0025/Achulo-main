@@ -1037,7 +1037,45 @@ def upload_listing_images(listing_id):
     else:
         flash('No valid images uploaded (JPG/PNG only, max 10MB each).', 'error')
 
+    if request.form.get('return_to') == 'edit':
+        return redirect(url_for('dashboard_listing_edit', listing_id=listing_id))
     return redirect(url_for('dashboard_listings'))
+
+@app.route('/dashboard/listings/<int:listing_id>/images/<int:image_id>/delete', methods=['POST'])
+@login_required
+@seller_required
+def delete_listing_image(listing_id, image_id):
+    """Delete a single photo from a listing"""
+    db = get_db()
+    listing = db.execute(
+        'SELECT * FROM listings WHERE id = ? AND owner_id = ?',
+        (listing_id, session['user_id'])
+    ).fetchone()
+
+    if not listing:
+        flash('That listing could not be found — it may have already been removed.', 'error')
+        return redirect(url_for('dashboard_listings'))
+
+    image = db.execute(
+        'SELECT * FROM listing_images WHERE id = ? AND listing_id = ?', (image_id, listing_id)
+    ).fetchone()
+
+    if image:
+        db.execute('DELETE FROM listing_images WHERE id = ?', (image_id,))
+        if listing['image_url'] == image['image_path']:
+            next_image = db.execute(
+                'SELECT * FROM listing_images WHERE listing_id = ? AND id != ? ORDER BY id LIMIT 1',
+                (listing_id, image_id)
+            ).fetchone()
+            db.execute(
+                'UPDATE listings SET image_url = ? WHERE id = ?',
+                (next_image['image_path'] if next_image else None, listing_id)
+            )
+        db.commit()
+        log_action(session['user_id'], 'listing_image_deleted', 'listing', listing_id)
+        flash('Photo removed.', 'success')
+
+    return redirect(url_for('dashboard_listing_edit', listing_id=listing_id))
 
 @app.route('/dashboard/listings/<int:listing_id>/edit', methods=['GET', 'POST'])
 @login_required
@@ -1057,6 +1095,10 @@ def dashboard_listing_edit(listing_id):
         flash('That listing could not be found — it may have already been removed.', 'error')
         return redirect(url_for('admin_dashboard') if session.get('is_admin') else url_for('dashboard_listings'))
 
+    listing_images = db.execute(
+        'SELECT * FROM listing_images WHERE listing_id = ? ORDER BY id', (listing_id,)
+    ).fetchall()
+
     if request.method == 'POST':
         title = sanitize_input(request.form.get('title', ''))
         description = sanitize_input(request.form.get('description', ''))
@@ -1071,7 +1113,7 @@ def dashboard_listing_edit(listing_id):
 
         if not all([title, description, address, state, price]):
             flash('All fields are required.', 'error')
-            return render_template('dashboard_listing_new.html', listing=listing)
+            return render_template('dashboard_listing_new.html', listing=listing, listing_images=listing_images)
 
         try:
             price = int(price)
@@ -1079,7 +1121,7 @@ def dashboard_listing_edit(listing_id):
             bathrooms = int(bathrooms)
         except ValueError:
             flash('Invalid price or room numbers.', 'error')
-            return render_template('dashboard_listing_new.html', listing=listing)
+            return render_template('dashboard_listing_new.html', listing=listing, listing_images=listing_images)
 
         db.execute(
             """UPDATE listings SET title=?, description=?, address=?, state=?, lga=?, location_tag=?,
@@ -1092,7 +1134,7 @@ def dashboard_listing_edit(listing_id):
         flash('Listing updated successfully.', 'success')
         return redirect(url_for('admin_dashboard') if session.get('is_admin') and listing['owner_id'] != session['user_id'] else url_for('dashboard_listings'))
 
-    return render_template('dashboard_listing_new.html', listing=listing)
+    return render_template('dashboard_listing_new.html', listing=listing, listing_images=listing_images)
 
 @app.route('/dashboard/listings/<int:listing_id>/delete', methods=['POST'])
 @login_required

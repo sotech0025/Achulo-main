@@ -34,10 +34,7 @@
               <button class="text-xs font-medium border border-destructive/40 text-destructive rounded-lg px-3 py-1.5 hover:bg-destructive/5 transition">Delete</button>
             </form>
 
-            <form method="post" action="{{ url_for('upload_listing_images', listing_id=listing['id']) }}" enctype="multipart/form-data" class="flex items-center gap-2">
-              <input type="file" name="images" accept=".jpg,.jpeg,.png" multiple class="text-xs" />
-              <button class="text-xs font-medium border border-border rounded-lg px-3 py-1.5 hover:bg-muted/30 transition">Upload Photos</button>
-            </form>
+            <a href="{{ url_for('dashboard_listing_edit', listing_id=listing['id']) }}#photos" class="text-xs font-medium bg-primary text-primary-foreground rounded-lg px-3 py-1.5 hover:opacity-90 transition">Upload Photos</a>
 
             <form method="post" action="{{ url_for('upload_listing_documents', listing_id=listing['id']) }}" enctype="multipart/form-data" class="flex items-center gap-2">
               <input type="file" name="documents" accept=".pdf,.jpg,.jpeg,.png,.doc,.docx" multiple class="text-xs" />

@@ -113,46 +113,35 @@
   .motion-blob {
     position: absolute;
     border-radius: 45% 55% 60% 40% / 50% 45% 55% 50%;
-    filter: blur(60px);
+    filter: blur(40px);
     opacity: 0.55;
     mix-blend-mode: screen;
-    will-change: transform, filter, border-radius;
+    will-change: transform;
+    transform: translateZ(0);
   }
   .motion-blob-1 {
-    width: 60vmax; height: 60vmax;
+    width: 55vmax; height: 55vmax;
     top: -20%; left: -15%;
     background: radial-gradient(circle at 30% 30%, #3fae63, #17512f 70%);
-    animation: blobDrift1 22s ease-in-out infinite, blobHue 16s linear infinite;
+    animation: blobDrift1 22s ease-in-out infinite;
   }
   .motion-blob-2 {
-    width: 50vmax; height: 50vmax;
+    width: 46vmax; height: 46vmax;
     bottom: -25%; right: -10%;
     background: radial-gradient(circle at 60% 40%, #6ee7a0, #0d3420 70%);
-    animation: blobDrift2 26s ease-in-out infinite, blobHue 20s linear infinite reverse;
+    animation: blobDrift2 26s ease-in-out infinite;
   }
   .motion-blob-3 {
-    width: 38vmax; height: 38vmax;
-    top: 35%; left: 40%;
-    background: radial-gradient(circle at 50% 50%, #b7f2c8, #17512f 70%);
-    animation: blobDrift3 18s ease-in-out infinite, blobHue 24s linear infinite;
-    opacity: 0.35;
+    display: none;
   }
   @keyframes blobDrift1 {
-    0%, 100% { transform: translate(0, 0) scale(1) rotate(0deg); border-radius: 45% 55% 60% 40% / 50% 45% 55% 50%; }
-    33%      { transform: translate(8%, 10%) scale(1.15) rotate(30deg); border-radius: 60% 40% 45% 55% / 40% 60% 40% 60%; }
-    66%      { transform: translate(-6%, 6%) scale(0.95) rotate(-20deg); border-radius: 50% 50% 35% 65% / 55% 45% 60% 40%; }
+    0%, 100% { transform: translate(0, 0) scale(1) rotate(0deg); }
+    33%      { transform: translate(8%, 10%) scale(1.15) rotate(30deg); }
+    66%      { transform: translate(-6%, 6%) scale(0.95) rotate(-20deg); }
   }
   @keyframes blobDrift2 {
     0%, 100% { transform: translate(0, 0) scale(1) rotate(0deg); }
     50%      { transform: translate(-10%, -8%) scale(1.2) rotate(-25deg); }
-  }
-  @keyframes blobDrift3 {
-    0%, 100% { transform: translate(-50%, -50%) scale(1); }
-    50%      { transform: translate(-45%, -55%) scale(1.3); }
-  }
-  @keyframes blobHue {
-    0%   { filter: blur(60px) hue-rotate(0deg); }
-    100% { filter: blur(60px) hue-rotate(360deg); }
   }
   .motion-grid {
     position: absolute;
@@ -161,8 +150,10 @@
       linear-gradient(rgba(255,255,255,0.05) 1px, transparent 1px),
       linear-gradient(90deg, rgba(255,255,255,0.05) 1px, transparent 1px);
     background-size: 48px 48px;
-    animation: gridPan 30s linear infinite;
     mask-image: radial-gradient(ellipse 70% 70% at 50% 50%, black 40%, transparent 90%);
+  }
+  @media (min-width: 768px) {
+    .motion-grid { animation: gridPan 30s linear infinite; }
   }
   @keyframes gridPan {
     from { background-position: 0 0; }

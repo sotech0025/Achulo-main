@@ -72,5 +72,35 @@
       </a>
     </div>
   </form>
+
+  {% if listing %}
+  <div id="photos" class="bg-card border border-border rounded-2xl p-6 mt-6">
+    <h2 class="text-lg font-semibold mb-1">Photos</h2>
+    <p class="text-sm text-muted-foreground mb-4">Upload photos so buyers can see the property. JPG or PNG, up to 10MB each.</p>
+
+    {% if listing_images %}
+      <div class="grid grid-cols-3 sm:grid-cols-4 gap-3 mb-5">
+        {% for img in listing_images %}
+          <div class="relative group aspect-square rounded-lg overflow-hidden border border-border">
+            <img src="{{ img['image_path'] }}" alt="Listing photo" class="w-full h-full object-cover" />
+            <form method="post" action="{{ url_for('delete_listing_image', listing_id=listing['id'], image_id=img['id']) }}"
+                  onsubmit="return confirm('Remove this photo?');" class="absolute top-1 right-1">
+              <button type="submit" class="bg-black/60 text-white text-xs w-6 h-6 rounded-full flex items-center justify-center hover:bg-destructive transition" aria-label="Delete photo">&times;</button>
+            </form>
+          </div>
+        {% endfor %}
+      </div>
+    {% else %}
+      <p class="text-sm text-muted-foreground mb-5">No photos uploaded yet.</p>
+    {% endif %}
+
+    <form method="post" action="{{ url_for('upload_listing_images', listing_id=listing['id']) }}" enctype="multipart/form-data" class="flex flex-wrap items-center gap-3">
+      <input type="hidden" name="return_to" value="edit" />
+      <input type="file" name="images" accept=".jpg,.jpeg,.png" multiple
+             class="text-sm file:mr-3 file:px-3 file:py-2 file:rounded-md file:border file:border-border file:bg-muted/30 file:text-sm file:font-medium hover:file:bg-muted/50 file:cursor-pointer cursor-pointer" />
+      <button type="submit" class="h-10 px-4 rounded-lg bg-primary text-primary-foreground text-sm font-medium hover:opacity-90 transition">Upload Photos</button>
+    </form>
+  </div>
+  {% endif %}
 </div>
 {% endblock %}

@@ -5,3 +5,22 @@ body {
   background: #17512f;
   color: #fff;
 }
+
+/* Prevent SVG icons from flashing at native (huge) size before the
+   Tailwind CDN script parses and applies utility classes like h-5 w-5. */
+svg {
+  max-width: 100%;
+  height: auto;
+}
+[class*="h-3"] { max-height: 0.75rem; }
+[class*="h-4"] { max-height: 1rem; }
+[class*="h-5"] { max-height: 1.25rem; }
+[class*="h-6"] { max-height: 1.5rem; }
+[class*="h-8"] { max-height: 2rem; }
+[class*="h-9"] { max-height: 2.25rem; }
+[class*="w-3"] { max-width: 0.75rem; }
+[class*="w-4"] { max-width: 1rem; }
+[class*="w-5"] { max-width: 1.25rem; }
+[class*="w-6"] { max-width: 1.5rem; }
+[class*="w-8"] { max-width: 2rem; }
+[class*="w-9"] { max-width: 2.25rem; }
