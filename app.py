@@ -518,7 +518,53 @@ def log_login_attempt(user_id, success):
 
 @app.route('/')
 def home():
-    return render_template('home.html')
+    db = get_db()
+    location = sanitize_input(request.args.get('location', '').strip())
+    rental_period = request.args.get('rentalPeriod', '')
+    try:
+        price_index = int(request.args.get('price', ''))
+    except ValueError:
+        price_index = None
+    price_preset = PRICE_PRESETS[price_index] if price_index is not None and 0 <= price_index < len(PRICE_PRESETS) else None
+
+    query = """SELECT l.*, u.name AS lister_name, u.kyc_status AS lister_kyc_status,
+                      u.company_status AS lister_company_status, u.id AS lister_id
+               FROM listings l JOIN users u ON u.id = l.owner_id
+               WHERE l.status = 'active'"""
+    params = []
+
+    if location:
+        query += " AND (l.location_tag LIKE ? OR l.state LIKE ? OR l.lga LIKE ? OR l.address LIKE ?)"
+        like = f"%{location}%"
+        params += [like, like, like, like]
+
+    if rental_period in ('per_month', 'per_annum'):
+        query += " AND l.rental_period = ?"
+        params.append(rental_period)
+
+    if price_preset:
+        if price_preset['min'] is not None:
+            query += " AND l.price >= ?"
+            params.append(price_preset['min'])
+        if price_preset['max'] is not None:
+            query += " AND l.price <= ?"
+            params.append(price_preset['max'])
+
+    query += " ORDER BY l.created_at DESC LIMIT 60"
+    listings = db.execute(query, params).fetchall()
+
+    favorited_ids = set()
+    if 'user_id' in session and listings:
+        rows = db.execute(
+            f"SELECT listing_id FROM favorites WHERE user_id = ? AND listing_id IN ({','.join('?' * len(listings))})",
+            [session['user_id']] + [l['id'] for l in listings]
+        ).fetchall()
+        favorited_ids = {r['listing_id'] for r in rows}
+
+    return render_template(
+        'home.html', listings=listings, location=location, rental_period=rental_period,
+        price_index=price_index, favorited_ids=favorited_ids
+    )
 
 @app.route('/terms')
 def terms():

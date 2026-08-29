@@ -45,7 +45,7 @@
       <input type="hidden" name="rentalPeriod" value="{{ rental_period or '' }}" />
       {% for p in price_presets %}
         <button type="submit" name="price" value="{{ loop.index0 }}"
-          class="px-3 py-1.5 rounded-full border text-sm font-medium transition-all border-border text-muted-foreground hover:border-primary">
+          class="px-3 py-1.5 rounded-full border text-sm font-medium transition-all {{ 'border-primary bg-primary/5 text-primary' if price_index == loop.index0 else 'border-border text-muted-foreground hover:border-primary' }}">
           {{ p.label }}
         </button>
       {% endfor %}
@@ -63,15 +63,59 @@
     </div>
   </div>
 
-  <div class="text-center py-24 bg-muted/30 rounded-lg border border-dashed border-border">
-    <h3 class="text-lg font-semibold mb-1">No listings match this search yet</h3>
-    <p class="text-muted-foreground text-sm mb-4">Listings appear here once an admin approves them. Own a property to rent out?</p>
-    {% if current_user %}
-      <a href="{{ url_for('dashboard_listing_new') }}" class="inline-block mt-4 text-sm font-medium border border-border rounded-lg px-4 py-1.5 hover:border-primary hover:text-primary transition">Create Listing</a>
-    {% else %}
-      <a href="{{ url_for('register') }}" class="inline-block mt-4 text-sm font-medium border border-border rounded-lg px-4 py-1.5 hover:border-primary hover:text-primary transition">Register as a Listing Agent</a>
-    {% endif %}
-  </div>
+  {% if listings|length == 0 %}
+    <div class="text-center py-24 bg-muted/30 rounded-lg border border-dashed border-border">
+      <h3 class="text-lg font-semibold mb-1">No listings match this search yet</h3>
+      <p class="text-muted-foreground text-sm mb-4">Listings appear here once an admin approves them. Own a property to rent out?</p>
+      {% if current_user %}
+        <a href="{{ url_for('dashboard_listing_new') }}" class="inline-block mt-4 text-sm font-medium border border-border rounded-lg px-4 py-1.5 hover:border-primary hover:text-primary transition">Create Listing</a>
+      {% else %}
+        <a href="{{ url_for('register') }}" class="inline-block mt-4 text-sm font-medium border border-border rounded-lg px-4 py-1.5 hover:border-primary hover:text-primary transition">Register as a Listing Agent</a>
+      {% endif %}
+    </div>
+  {% else %}
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+      {% for l in listings %}
+        <div class="relative bg-card border border-border rounded-xl overflow-hidden hover:shadow-md transition-shadow">
+          {% if current_user %}
+            <form method="post" action="{{ url_for('toggle_favorite', listing_id=l['id']) }}" class="absolute top-2 right-2 z-10">
+              <input type="hidden" name="next" value="{{ request.full_path }}" />
+              <button type="submit" aria-label="Save property"
+                      class="flex items-center justify-center h-8 w-8 rounded-full backdrop-blur-sm transition-colors {{ 'bg-red-50/90 text-red-600' if l['id'] in favorited_ids else 'bg-background/80 text-muted-foreground hover:text-red-600' }}">
+                {{ icons.heart('h-4 w-4', filled=(l['id'] in favorited_ids)) }}
+              </button>
+            </form>
+          {% endif %}
+          <a href="{{ url_for('listing_detail', listing_id=l['id']) }}">
+            <div class="aspect-[4/3] bg-muted flex items-center justify-center">
+              {% if l['image_url'] %}<img src="{{ l['image_url'] }}" class="w-full h-full object-cover" alt="{{ l['title'] }}" />
+              {% else %}<span class="text-xs text-muted-foreground">No photo</span>{% endif %}
+            </div>
+            <div class="p-4">
+              <div class="flex items-center gap-1.5 mb-1.5 flex-wrap">
+                {% if l['verification_status'] == 'verified' %}
+                  <span class="inline-flex items-center gap-1 text-[10px] font-medium text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-full px-2 py-0.5">
+                    {{ icons.shield_check('h-2.5 w-2.5') }} Verified Property
+                  </span>
+                {% endif %}
+                {% if l['lister_company_status'] == 'verified' %}
+                  <span class="text-[10px] font-medium text-green-700 bg-green-50 border border-green-200 rounded-full px-2 py-0.5">Verified Agent</span>
+                {% elif l['lister_kyc_status'] == 'verified' %}
+                  <span class="text-[10px] font-medium text-blue-700 bg-blue-50 border border-blue-200 rounded-full px-2 py-0.5">ID Verified</span>
+                {% else %}
+                  <span class="text-[10px] font-medium text-yellow-700 bg-yellow-50 border border-yellow-200 rounded-full px-2 py-0.5">Unverified</span>
+                {% endif %}
+              </div>
+              <p class="font-medium text-sm mb-1">{{ l['title'] }}</p>
+              <p class="text-xs text-muted-foreground mb-2">{{ l['location_tag'] or l['address'] }}</p>
+              <p class="text-primary font-bold text-sm mb-2">₦{{ "{:,}".format(l['price']) }} <span class="text-xs font-normal text-muted-foreground">{{ '/mo' if l['rental_period'] == 'per_month' else '/yr' }}</span></p>
+              <p class="text-xs text-muted-foreground">by {{ l['lister_name'] }}</p>
+            </div>
+          </a>
+        </div>
+      {% endfor %}
+    </div>
+  {% endif %}
 </div>
 
 <section class="border-t border-border py-10 mt-6">
