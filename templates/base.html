@@ -46,7 +46,7 @@
       </a>
 
       <nav class="hidden md:flex items-center gap-6">
-        <a href="{{ url_for('home') }}" class="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">Browse</a>
+        <a href="{{ url_for('browse') }}" class="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">Browse</a>
         {% if current_user %}
           <a href="{{ url_for('dashboard') }}" class="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">Dashboard</a>
           {% if current_user['role'] == 'seller' or session.get('is_admin') %}
@@ -107,7 +107,7 @@
         <div>
           <h3 class="font-bold text-lg mb-4">For Tenants</h3>
           <ul class="space-y-2 text-white/70 text-sm">
-            <li><a href="{{ url_for('home') }}" class="hover:text-white transition-colors">Browse Properties</a></li>
+            <li><a href="{{ url_for('browse') }}" class="hover:text-white transition-colors">Browse Properties</a></li>
             <li><a href="{{ url_for('register') }}" class="hover:text-white transition-colors">Create Account</a></li>
             <li><a href="{{ url_for('security_info') }}" class="hover:text-white transition-colors">Scam Protection</a></li>
           </ul>

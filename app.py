@@ -568,6 +568,11 @@ def log_login_attempt(user_id, success):
 
 @app.route('/')
 def home():
+    """Marketing landing page — no search, no listings grid, its own page."""
+    return render_template('landing.html')
+
+@app.route('/browse')
+def browse():
     db = get_db()
     location = sanitize_input(request.args.get('location', '').strip())
     rental_period = request.args.get('rentalPeriod', '')
@@ -612,7 +617,7 @@ def home():
         favorited_ids = {r['listing_id'] for r in rows}
 
     return render_template(
-        'home.html', listings=listings, location=location, rental_period=rental_period,
+        'browse.html', listings=listings, location=location, rental_period=rental_period,
         price_index=price_index, favorited_ids=favorited_ids
     )
 
@@ -1368,7 +1373,7 @@ def listing_detail(listing_id):
     
     if not listing:
         flash('That listing is no longer available — it may have been removed.', 'error')
-        return redirect(url_for('home'))
+        return redirect(url_for('browse'))
     
     owner = db.execute('SELECT id, name, phone, kyc_status, company_status, account_status FROM users WHERE id = ?', (listing['owner_id'],)).fetchone()
     images = db.execute('SELECT * FROM listing_images WHERE listing_id = ? ORDER BY id', (listing_id,)).fetchall()
@@ -1390,7 +1395,7 @@ def report_listing(listing_id):
     
     if not listing:
         flash('That listing is no longer available.', 'error')
-        return redirect(url_for('home'))
+        return redirect(url_for('browse'))
     
     reporter_id = session.get('user_id')
     reason = sanitize_input(request.form.get('reason', ''))
@@ -1497,7 +1502,7 @@ def pay_listing(listing_id):
     listing = db.execute('SELECT * FROM listings WHERE id = ?', (listing_id,)).fetchone()
     if not listing:
         flash('That listing is no longer available.', 'error')
-        return redirect(url_for('home'))
+        return redirect(url_for('browse'))
 
     buyer = db.execute('SELECT email FROM users WHERE id = ?', (session['user_id'],)).fetchone()
 
@@ -1663,7 +1668,7 @@ def toggle_favorite(listing_id):
     listing = db.execute('SELECT id FROM listings WHERE id = ?', (listing_id,)).fetchone()
     if not listing:
         flash('That listing is no longer available.', 'error')
-        return redirect(url_for('home'))
+        return redirect(url_for('browse'))
 
     existing = db.execute(
         'SELECT id FROM favorites WHERE user_id = ? AND listing_id = ?',
