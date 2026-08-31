@@ -24,3 +24,141 @@ svg {
 [class*="w-6"] { max-width: 1.5rem; }
 [class*="w-8"] { max-width: 2rem; }
 [class*="w-9"] { max-width: 2.25rem; }
+
+/* ------------------------------------------------------------------ */
+/* Auth pages — shared animated background (login + register)          */
+/* No grid/dot pattern: soft drifting blobs only, kept in one place    */
+/* so every auth screen looks and moves the same way.                  */
+/* ------------------------------------------------------------------ */
+.auth-bg {
+  position: absolute;
+  inset: 0;
+  z-index: -10;
+  overflow: hidden;
+  background: #0d1f14;
+}
+.auth-blob {
+  position: absolute;
+  border-radius: 45% 55% 60% 40% / 50% 45% 55% 50%;
+  filter: blur(40px);
+  opacity: 0.55;
+  mix-blend-mode: screen;
+  will-change: transform;
+  transform: translateZ(0);
+}
+.auth-blob-1 {
+  width: 55vmax; height: 55vmax;
+  top: -20%; left: -15%;
+  background: radial-gradient(circle at 30% 30%, #3fae63, #17512f 70%);
+  animation: authBlobDrift1 22s ease-in-out infinite;
+}
+.auth-blob-2 {
+  width: 46vmax; height: 46vmax;
+  bottom: -25%; right: -10%;
+  background: radial-gradient(circle at 60% 40%, #6ee7a0, #0d3420 70%);
+  animation: authBlobDrift2 26s ease-in-out infinite;
+}
+@keyframes authBlobDrift1 {
+  0%, 100% { transform: translate(0, 0) scale(1) rotate(0deg); }
+  33%      { transform: translate(8%, 10%) scale(1.15) rotate(30deg); }
+  66%      { transform: translate(-6%, 6%) scale(0.95) rotate(-20deg); }
+}
+@keyframes authBlobDrift2 {
+  0%, 100% { transform: translate(0, 0) scale(1) rotate(0deg); }
+  50%      { transform: translate(-10%, -8%) scale(1.2) rotate(-25deg); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .auth-blob { animation: none !important; }
+}
+
+/* ------------------------------------------------------------------ */
+/* Property gallery lightbox — used on the listing detail page.        */
+/* Full-screen viewer with a blurred, scaled copy of the current photo */
+/* filling the background, and carousel arrows to slide between shots. */
+/* ------------------------------------------------------------------ */
+body.lightbox-open { overflow: hidden; }
+
+.lightbox-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  background: rgba(10, 12, 10, 0.92);
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.25s ease;
+}
+.lightbox-overlay.is-open {
+  opacity: 1;
+  visibility: visible;
+}
+.lightbox-track {
+  display: flex;
+  width: 100%;
+  height: 100%;
+  transition: transform 0.35s cubic-bezier(.4, 0, .2, 1);
+}
+.lightbox-slide {
+  position: relative;
+  flex: 0 0 100%;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+}
+.lightbox-slide-bg {
+  position: absolute;
+  inset: -5%;
+  background-size: cover;
+  background-position: center;
+  filter: blur(45px) brightness(0.55);
+  transform: scale(1.15);
+}
+.lightbox-slide-img {
+  position: relative;
+  z-index: 1;
+  display: block;
+  max-width: 92%;
+  max-height: 86%;
+  margin: 7vh auto 0;
+  object-fit: contain;
+  border-radius: 0.5rem;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+}
+.lightbox-btn {
+  position: fixed;
+  z-index: 101;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 2.75rem;
+  width: 2.75rem;
+  border-radius: 9999px;
+  background: rgba(255, 255, 255, 0.12);
+  color: #fff;
+  backdrop-filter: blur(6px);
+  transition: background 0.15s ease, transform 0.15s ease;
+}
+.lightbox-btn:hover { background: rgba(255, 255, 255, 0.24); }
+.lightbox-btn:active { transform: scale(0.92); }
+.lightbox-close { top: 1.25rem; right: 1.25rem; }
+.lightbox-prev { left: 1.25rem; top: 50%; transform: translateY(-50%); }
+.lightbox-next { right: 1.25rem; top: 50%; transform: translateY(-50%); }
+.lightbox-counter {
+  position: fixed;
+  bottom: 1.25rem;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 101;
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: #fff;
+  background: rgba(255, 255, 255, 0.12);
+  backdrop-filter: blur(6px);
+  padding: 0.25rem 0.75rem;
+  border-radius: 9999px;
+}
+.js-gallery-item { cursor: zoom-in; }
+@media (max-width: 640px) {
+  .lightbox-prev { left: 0.5rem; }
+  .lightbox-next { right: 0.5rem; }
+  .lightbox-btn { height: 2.25rem; width: 2.25rem; }
+}

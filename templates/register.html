@@ -4,12 +4,10 @@
 {% block content %}
 <div class="relative flex-1 flex items-center justify-center py-16 px-4 overflow-hidden isolate">
 
-  <!-- Animated motion background -->
-  <div class="absolute inset-0 -z-10 bg-[#0d1f14] overflow-hidden">
-    <div class="motion-blob motion-blob-1"></div>
-    <div class="motion-blob motion-blob-2"></div>
-    <div class="motion-blob motion-blob-3"></div>
-    <div class="motion-grid"></div>
+  <!-- Animated background — shared with the login page, no grid pattern -->
+  <div class="auth-bg">
+    <div class="auth-blob auth-blob-1"></div>
+    <div class="auth-blob auth-blob-2"></div>
   </div>
 
   <div class="relative w-full max-w-lg bg-card/95 backdrop-blur-sm border border-border rounded-2xl shadow-2xl p-8">
@@ -108,61 +106,6 @@
     </p>
   </div>
 </div>
-
-<style>
-  .motion-blob {
-    position: absolute;
-    border-radius: 45% 55% 60% 40% / 50% 45% 55% 50%;
-    filter: blur(40px);
-    opacity: 0.55;
-    mix-blend-mode: screen;
-    will-change: transform;
-    transform: translateZ(0);
-  }
-  .motion-blob-1 {
-    width: 55vmax; height: 55vmax;
-    top: -20%; left: -15%;
-    background: radial-gradient(circle at 30% 30%, #3fae63, #17512f 70%);
-    animation: blobDrift1 22s ease-in-out infinite;
-  }
-  .motion-blob-2 {
-    width: 46vmax; height: 46vmax;
-    bottom: -25%; right: -10%;
-    background: radial-gradient(circle at 60% 40%, #6ee7a0, #0d3420 70%);
-    animation: blobDrift2 26s ease-in-out infinite;
-  }
-  .motion-blob-3 {
-    display: none;
-  }
-  @keyframes blobDrift1 {
-    0%, 100% { transform: translate(0, 0) scale(1) rotate(0deg); }
-    33%      { transform: translate(8%, 10%) scale(1.15) rotate(30deg); }
-    66%      { transform: translate(-6%, 6%) scale(0.95) rotate(-20deg); }
-  }
-  @keyframes blobDrift2 {
-    0%, 100% { transform: translate(0, 0) scale(1) rotate(0deg); }
-    50%      { transform: translate(-10%, -8%) scale(1.2) rotate(-25deg); }
-  }
-  .motion-grid {
-    position: absolute;
-    inset: -10%;
-    background-image:
-      linear-gradient(rgba(255,255,255,0.05) 1px, transparent 1px),
-      linear-gradient(90deg, rgba(255,255,255,0.05) 1px, transparent 1px);
-    background-size: 48px 48px;
-    mask-image: radial-gradient(ellipse 70% 70% at 50% 50%, black 40%, transparent 90%);
-  }
-  @media (min-width: 768px) {
-    .motion-grid { animation: gridPan 30s linear infinite; }
-  }
-  @keyframes gridPan {
-    from { background-position: 0 0; }
-    to   { background-position: 96px 96px; }
-  }
-  @media (prefers-reduced-motion: reduce) {
-    .motion-blob, .motion-grid { animation: none !important; }
-  }
-</style>
 
 <script>
   const roleInputs = document.querySelectorAll('input[name="role"]');

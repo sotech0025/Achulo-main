@@ -37,6 +37,38 @@
   </div>
 </section>
 
+<section class="bg-card border-b border-border py-14">
+  <div class="container mx-auto px-4 md:px-8 max-w-5xl">
+    <div class="text-center mb-10">
+      <h2 class="text-2xl md:text-3xl font-serif font-bold mb-2">How ACHULO works</h2>
+      <p class="text-muted-foreground max-w-xl mx-auto">Three steps between you and a home you don't have to worry about.</p>
+    </div>
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+      <div class="text-center">
+        <div class="h-12 w-12 rounded-xl bg-primary/10 flex items-center justify-center mx-auto mb-4">
+          {{ icons.house('h-6 w-6 text-primary') }}
+        </div>
+        <h3 class="font-semibold mb-1.5">1. Search & filter</h3>
+        <p class="text-sm text-muted-foreground leading-relaxed">Browse verified properties by city, price and rental term — no scrolling through fakes.</p>
+      </div>
+      <div class="text-center">
+        <div class="h-12 w-12 rounded-xl bg-primary/10 flex items-center justify-center mx-auto mb-4">
+          {{ icons.chat('h-6 w-6 text-primary') }}
+        </div>
+        <h3 class="font-semibold mb-1.5">2. Message the agent</h3>
+        <p class="text-sm text-muted-foreground leading-relaxed">Ask questions and arrange a viewing directly, right inside ACHULO.</p>
+      </div>
+      <div class="text-center">
+        <div class="h-12 w-12 rounded-xl bg-primary/10 flex items-center justify-center mx-auto mb-4">
+          {{ icons.lock('h-6 w-6 text-primary') }}
+        </div>
+        <h3 class="font-semibold mb-1.5">3. Pay into escrow</h3>
+        <p class="text-sm text-muted-foreground leading-relaxed">Your payment is held for 48 hours so you can confirm the property before it's released.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
 <div class="border-b border-border bg-card">
   <div class="container mx-auto px-4 md:px-8 max-w-7xl py-4">
     <p class="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">Price range</p>
@@ -76,7 +108,7 @@
   {% else %}
     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
       {% for l in listings %}
-        <div class="relative bg-card border border-border rounded-xl overflow-hidden hover:shadow-md transition-shadow">
+        <div class="relative bg-card border border-border rounded-2xl overflow-hidden hover:shadow-md transition-shadow">
           {% if current_user %}
             <form method="post" action="{{ url_for('toggle_favorite', listing_id=l['id']) }}" class="absolute top-2 right-2 z-10">
               <input type="hidden" name="next" value="{{ request.full_path }}" />
@@ -143,6 +175,18 @@
         </div>
       </div>
     </div>
+  </div>
+</section>
+
+<section class="bg-primary text-primary-foreground py-14">
+  <div class="container mx-auto px-4 md:px-8 max-w-3xl text-center">
+    <h2 class="text-2xl md:text-3xl font-serif font-bold mb-3">Have a property to rent out?</h2>
+    <p class="text-white/75 mb-8 max-w-xl mx-auto">List it on ACHULO once your identity is verified, and manage enquiries, escrow payments and tenants from one dashboard.</p>
+    {% if current_user %}
+      <a href="{{ url_for('dashboard_listing_new') }}" class="inline-flex items-center bg-background text-primary font-medium px-6 py-3 rounded-lg hover:opacity-90 transition">Add a listing</a>
+    {% else %}
+      <a href="{{ url_for('register') }}" class="inline-flex items-center bg-background text-primary font-medium px-6 py-3 rounded-lg hover:opacity-90 transition">Register as a Listing Agent</a>
+    {% endif %}
   </div>
 </section>
 
