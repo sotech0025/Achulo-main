@@ -101,6 +101,33 @@
       <button type="submit" class="h-10 px-4 rounded-lg bg-primary text-primary-foreground text-sm font-medium hover:opacity-90 transition">Upload Photos</button>
     </form>
   </div>
+
+  <div id="videos" class="bg-card border border-border rounded-2xl p-6 mt-6">
+    <h2 class="text-lg font-semibold mb-1">Video Tour</h2>
+    <p class="text-sm text-muted-foreground mb-4">Upload a walkthrough video so buyers can see the property in motion. MP4, MOV or WEBM, up to 60MB each.</p>
+
+    {% if listing_videos %}
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-5">
+        {% for vid in listing_videos %}
+          <div class="relative group rounded-lg overflow-hidden border border-border">
+            <video src="{{ vid['video_path'] }}" class="w-full aspect-video bg-black" controls preload="metadata"></video>
+            <form method="post" action="{{ url_for('delete_listing_video', listing_id=listing['id'], video_id=vid['id']) }}"
+                  onsubmit="return confirm('Remove this video?');" class="absolute top-1 right-1">
+              <button type="submit" class="bg-black/60 text-white text-xs w-6 h-6 rounded-full flex items-center justify-center hover:bg-destructive transition" aria-label="Delete video">&times;</button>
+            </form>
+          </div>
+        {% endfor %}
+      </div>
+    {% else %}
+      <p class="text-sm text-muted-foreground mb-5">No video uploaded yet.</p>
+    {% endif %}
+
+    <form method="post" action="{{ url_for('upload_listing_videos', listing_id=listing['id']) }}" enctype="multipart/form-data" class="flex flex-wrap items-center gap-3">
+      <input type="file" name="videos" accept=".mp4,.mov,.webm" multiple
+             class="text-sm file:mr-3 file:px-3 file:py-2 file:rounded-md file:border file:border-border file:bg-muted/30 file:text-sm file:font-medium hover:file:bg-muted/50 file:cursor-pointer cursor-pointer" />
+      <button type="submit" class="h-10 px-4 rounded-lg bg-primary text-primary-foreground text-sm font-medium hover:opacity-90 transition">Upload Video</button>
+    </form>
+  </div>
   {% endif %}
 </div>
 {% endblock %}

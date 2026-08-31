@@ -247,5 +247,35 @@
       </table>
     </div>
   </section>
+
+  <!-- Deleted listings archive -->
+  <section>
+    <h2 class="text-xl font-bold mb-4">Recently Deleted Listings</h2>
+    <div class="bg-card border border-border rounded-xl overflow-x-auto">
+      <table class="w-full text-sm">
+        <thead class="bg-muted/40 text-left text-muted-foreground"><tr>
+          <th class="px-4 py-3 font-medium">Title</th><th class="px-4 py-3 font-medium">Owner</th>
+          <th class="px-4 py-3 font-medium">Deleted By</th><th class="px-4 py-3 font-medium">Reason</th>
+          <th class="px-4 py-3 font-medium">Media</th><th class="px-4 py-3 font-medium">Deleted At</th>
+        </tr></thead>
+        <tbody>
+          {% for d in deleted_listings %}
+            <tr class="border-t border-border">
+              <td class="px-4 py-3 font-medium">{{ d['title'] }}</td>
+              <td class="px-4 py-3 text-muted-foreground">{{ d['owner_name'] }}</td>
+              <td class="px-4 py-3 text-muted-foreground">{{ d['deleted_by_name'] or '—' }}</td>
+              <td class="px-4 py-3 text-muted-foreground">{{ d['delete_reason'] or '—' }}</td>
+              <td class="px-4 py-3 text-muted-foreground">
+                {{ (d['images_json'] | fromjson | length) }} photo(s), {{ (d['videos_json'] | fromjson | length) }} video(s)
+              </td>
+              <td class="px-4 py-3 text-muted-foreground whitespace-nowrap">{{ d['deleted_at'][:16] }}</td>
+            </tr>
+          {% else %}
+            <tr><td colspan="6" class="px-4 py-6 text-center text-muted-foreground">No listings have been deleted yet.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </section>
 </div>
 {% endblock %}

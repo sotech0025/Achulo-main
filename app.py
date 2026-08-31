@@ -1,5 +1,6 @@
 import os
 import sqlite3
+import json
 import re
 import hashlib
 import hmac
@@ -17,15 +18,18 @@ BASE_DIR = os.path.abspath(os.path.dirname(__file__))
 DB_PATH = os.path.join(BASE_DIR, "achulo.db")
 UPLOAD_FOLDER = os.path.join(BASE_DIR, "static/uploads")
 ALLOWED_EXTENSIONS = {'pdf', 'jpg', 'jpeg', 'png', 'doc', 'docx'}
-MAX_FILE_SIZE = 10 * 1024 * 1024  # 10MB
+MAX_FILE_SIZE = 10 * 1024 * 1024  # 10MB — photos & documents
+MAX_VIDEO_SIZE = 60 * 1024 * 1024  # 60MB — property video tours
+VIDEO_EXTENSIONS = {'mp4', 'mov', 'webm'}
 
 # Create uploads directory
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
 app = Flask(__name__)
+app.jinja_env.filters['fromjson'] = lambda s: json.loads(s) if s else []
 app.secret_key = os.environ.get("SECRET_KEY", "dev-secret-change-me-in-production")
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
-app.config['MAX_CONTENT_LENGTH'] = MAX_FILE_SIZE
+app.config['MAX_CONTENT_LENGTH'] = MAX_VIDEO_SIZE
 
 # Admin credentials
 ADMIN_EMAIL = os.environ.get("ADMIN_EMAIL", "admin@achulo.test")
@@ -273,6 +277,40 @@ def init_db():
             created_at TEXT NOT NULL
         );
 
+        CREATE TABLE IF NOT EXISTS listing_videos (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            listing_id INTEGER NOT NULL REFERENCES listings(id),
+            video_path TEXT NOT NULL,
+            created_at TEXT NOT NULL
+        );
+
+        -- Archive: when a listing is deleted, a full snapshot (including its
+        -- photo/video paths) is written here first instead of being lost, so
+        -- there's a permanent record of what existed and why it was removed.
+        CREATE TABLE IF NOT EXISTS deleted_listings (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            original_listing_id INTEGER NOT NULL,
+            owner_id INTEGER,
+            owner_name TEXT,
+            title TEXT,
+            description TEXT,
+            address TEXT,
+            state TEXT,
+            lga TEXT,
+            location_tag TEXT,
+            price INTEGER,
+            rental_period TEXT,
+            bedrooms INTEGER,
+            bathrooms INTEGER,
+            verification_status TEXT,
+            status TEXT,
+            images_json TEXT,
+            videos_json TEXT,
+            deleted_by INTEGER REFERENCES users(id),
+            delete_reason TEXT,
+            deleted_at TEXT NOT NULL
+        );
+
         CREATE TABLE IF NOT EXISTS messages (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             sender_id INTEGER NOT NULL REFERENCES users(id),
@@ -315,6 +353,18 @@ def init_db():
             status TEXT NOT NULL DEFAULT 'open',
             created_at TEXT NOT NULL
         );
+
+        -- Read-only views, not extra copies of the data: they always reflect
+        -- the live `listings` table, split by review state, so admin/home
+        -- queries can pull "the approved ones" or "the pending ones" by name
+        -- instead of repeating the same WHERE clause everywhere.
+        CREATE VIEW IF NOT EXISTS approved_listings AS
+            SELECT * FROM listings
+            WHERE status = 'active' AND verification_status = 'verified';
+
+        CREATE VIEW IF NOT EXISTS pending_listings_db AS
+            SELECT * FROM listings
+            WHERE verification_status IN ('pending_documents', 'pending_review');
         """
     )
     db.commit()
@@ -529,8 +579,8 @@ def home():
 
     query = """SELECT l.*, u.name AS lister_name, u.kyc_status AS lister_kyc_status,
                       u.company_status AS lister_company_status, u.id AS lister_id
-               FROM listings l JOIN users u ON u.id = l.owner_id
-               WHERE l.status = 'active'"""
+               FROM approved_listings l JOIN users u ON u.id = l.owner_id
+               WHERE 1=1"""
     params = []
 
     if location:
@@ -1123,6 +1173,80 @@ def delete_listing_image(listing_id, image_id):
 
     return redirect(url_for('dashboard_listing_edit', listing_id=listing_id))
 
+@app.route('/dashboard/listings/<int:listing_id>/videos', methods=['POST'])
+@login_required
+@seller_required
+def upload_listing_videos(listing_id):
+    """Upload one or more video tours for a listing"""
+    db = get_db()
+    listing = db.execute(
+        'SELECT * FROM listings WHERE id = ? AND owner_id = ?',
+        (listing_id, session['user_id'])
+    ).fetchone()
+
+    if not listing:
+        flash('That listing could not be found — it may have already been removed.', 'error')
+        return redirect(url_for('dashboard_listings'))
+
+    files = request.files.getlist('videos')
+    uploaded = []
+
+    for file in files:
+        if file and file.filename:
+            ext = file.filename.rsplit('.', 1)[-1].lower() if '.' in file.filename else ''
+            if ext not in VIDEO_EXTENSIONS:
+                continue
+            file.seek(0, os.SEEK_END)
+            size = file.tell()
+            file.seek(0)
+            if size > MAX_VIDEO_SIZE:
+                continue
+            filename = secure_filename(f"vid_{listing_id}_{int(datetime.now().timestamp())}_{file.filename}")
+            filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+            file.save(filepath)
+            rel_path = url_for('static', filename=f'uploads/{filename}')
+            db.execute(
+                'INSERT INTO listing_videos (listing_id, video_path, created_at) VALUES (?, ?, ?)',
+                (listing_id, rel_path, datetime.now().isoformat())
+            )
+            uploaded.append(rel_path)
+
+    if uploaded:
+        db.commit()
+        log_action(session['user_id'], 'listing_videos_uploaded', 'listing', listing_id)
+        flash(f'{len(uploaded)} video(s) uploaded.', 'success')
+    else:
+        flash('No valid videos uploaded (MP4/MOV/WEBM only, max 60MB each).', 'error')
+
+    return redirect(url_for('dashboard_listing_edit', listing_id=listing_id))
+
+@app.route('/dashboard/listings/<int:listing_id>/videos/<int:video_id>/delete', methods=['POST'])
+@login_required
+@seller_required
+def delete_listing_video(listing_id, video_id):
+    """Delete a single video from a listing"""
+    db = get_db()
+    listing = db.execute(
+        'SELECT * FROM listings WHERE id = ? AND owner_id = ?',
+        (listing_id, session['user_id'])
+    ).fetchone()
+
+    if not listing:
+        flash('That listing could not be found — it may have already been removed.', 'error')
+        return redirect(url_for('dashboard_listings'))
+
+    video = db.execute(
+        'SELECT * FROM listing_videos WHERE id = ? AND listing_id = ?', (video_id, listing_id)
+    ).fetchone()
+
+    if video:
+        db.execute('DELETE FROM listing_videos WHERE id = ?', (video_id,))
+        db.commit()
+        log_action(session['user_id'], 'listing_video_deleted', 'listing', listing_id)
+        flash('Video removed.', 'success')
+
+    return redirect(url_for('dashboard_listing_edit', listing_id=listing_id))
+
 @app.route('/dashboard/listings/<int:listing_id>/edit', methods=['GET', 'POST'])
 @login_required
 @seller_required
@@ -1144,6 +1268,9 @@ def dashboard_listing_edit(listing_id):
     listing_images = db.execute(
         'SELECT * FROM listing_images WHERE listing_id = ? ORDER BY id', (listing_id,)
     ).fetchall()
+    listing_videos = db.execute(
+        'SELECT * FROM listing_videos WHERE listing_id = ? ORDER BY id', (listing_id,)
+    ).fetchall()
 
     if request.method == 'POST':
         title = sanitize_input(request.form.get('title', ''))
@@ -1159,7 +1286,7 @@ def dashboard_listing_edit(listing_id):
 
         if not all([title, description, address, state, price]):
             flash('All fields are required.', 'error')
-            return render_template('dashboard_listing_new.html', listing=listing, listing_images=listing_images)
+            return render_template('dashboard_listing_new.html', listing=listing, listing_images=listing_images, listing_videos=listing_videos)
 
         try:
             price = int(price)
@@ -1167,7 +1294,7 @@ def dashboard_listing_edit(listing_id):
             bathrooms = int(bathrooms)
         except ValueError:
             flash('Invalid price or room numbers.', 'error')
-            return render_template('dashboard_listing_new.html', listing=listing, listing_images=listing_images)
+            return render_template('dashboard_listing_new.html', listing=listing, listing_images=listing_images, listing_videos=listing_videos)
 
         db.execute(
             """UPDATE listings SET title=?, description=?, address=?, state=?, lga=?, location_tag=?,
@@ -1180,7 +1307,7 @@ def dashboard_listing_edit(listing_id):
         flash('Listing updated successfully.', 'success')
         return redirect(url_for('admin_dashboard') if session.get('is_admin') and listing['owner_id'] != session['user_id'] else url_for('dashboard_listings'))
 
-    return render_template('dashboard_listing_new.html', listing=listing, listing_images=listing_images)
+    return render_template('dashboard_listing_new.html', listing=listing, listing_images=listing_images, listing_videos=listing_videos)
 
 @app.route('/dashboard/listings/<int:listing_id>/delete', methods=['POST'])
 @login_required
@@ -1199,7 +1326,29 @@ def dashboard_listing_delete(listing_id):
         flash('That listing could not be found — it may have already been removed.', 'error')
         return redirect(url_for('admin_dashboard') if session.get('is_admin') else url_for('dashboard_listings'))
 
+    owner_row = db.execute('SELECT name FROM users WHERE id = ?', (listing['owner_id'],)).fetchone()
+    images = db.execute('SELECT image_path FROM listing_images WHERE listing_id = ?', (listing_id,)).fetchall()
+    videos = db.execute('SELECT video_path FROM listing_videos WHERE listing_id = ?', (listing_id,)).fetchall()
+    delete_reason = sanitize_input(request.form.get('reason', ''))
+
+    # Archive a full snapshot before anything is removed, so deleted listing
+    # info isn't just gone — it lives on in its own table for admin reference.
+    db.execute(
+        """INSERT INTO deleted_listings
+           (original_listing_id, owner_id, owner_name, title, description, address, state, lga,
+            location_tag, price, rental_period, bedrooms, bathrooms, verification_status, status,
+            images_json, videos_json, deleted_by, delete_reason, deleted_at)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+        (listing_id, listing['owner_id'], owner_row['name'] if owner_row else None,
+         listing['title'], listing['description'], listing['address'], listing['state'], listing['lga'],
+         listing['location_tag'], listing['price'], listing['rental_period'], listing['bedrooms'],
+         listing['bathrooms'], listing['verification_status'], listing['status'],
+         json.dumps([i['image_path'] for i in images]), json.dumps([v['video_path'] for v in videos]),
+         session['user_id'], delete_reason or None, datetime.now().isoformat())
+    )
+
     db.execute('DELETE FROM listing_images WHERE listing_id = ?', (listing_id,))
+    db.execute('DELETE FROM listing_videos WHERE listing_id = ?', (listing_id,))
     db.execute('DELETE FROM documents WHERE listing_id = ?', (listing_id,))
     db.execute('DELETE FROM messages WHERE listing_id = ?', (listing_id,))
     db.execute('DELETE FROM listings WHERE id = ?', (listing_id,))
@@ -1223,6 +1372,7 @@ def listing_detail(listing_id):
     
     owner = db.execute('SELECT id, name, phone, kyc_status, company_status, account_status FROM users WHERE id = ?', (listing['owner_id'],)).fetchone()
     images = db.execute('SELECT * FROM listing_images WHERE listing_id = ? ORDER BY id', (listing_id,)).fetchall()
+    videos = db.execute('SELECT * FROM listing_videos WHERE listing_id = ? ORDER BY id', (listing_id,)).fetchall()
 
     is_favorited = False
     if 'user_id' in session:
@@ -1231,7 +1381,7 @@ def listing_detail(listing_id):
             (session['user_id'], listing_id)
         ).fetchone() is not None
 
-    return render_template('listing.html', listing=listing, owner=owner, images=images, is_favorited=is_favorited)
+    return render_template('listing.html', listing=listing, owner=owner, images=images, videos=videos, is_favorited=is_favorited)
 
 @app.route('/listing/<int:listing_id>/report', methods=['POST'])
 def report_listing(listing_id):
@@ -1669,9 +1819,8 @@ def admin_dashboard():
     ).fetchall()
 
     pending_listings = db.execute(
-        """SELECT l.*, u.name AS owner_name FROM listings l
+        """SELECT l.*, u.name AS owner_name FROM pending_listings_db l
            JOIN users u ON u.id = l.owner_id
-           WHERE l.verification_status IN ('pending_review', 'pending_documents')
            ORDER BY l.created_at DESC"""
     ).fetchall()
 
@@ -1700,12 +1849,19 @@ def admin_dashboard():
            ORDER BY t.updated_at DESC"""
     ).fetchall()
 
+    deleted_listings = db.execute(
+        """SELECT dl.*, u.name AS deleted_by_name FROM deleted_listings dl
+           LEFT JOIN users u ON u.id = dl.deleted_by
+           ORDER BY dl.deleted_at DESC LIMIT 100"""
+    ).fetchall()
+
     return render_template(
         'admin_dashboard.html', stats=stats, pending_docs=pending_docs,
         pending_company_docs=pending_company_docs,
         pending_listings=pending_listings, all_users=all_users,
         all_listings=all_listings, appeals=appeals,
-        disputed_transactions=disputed_transactions, fee_percent=ESCROW_FEE_PERCENT
+        disputed_transactions=disputed_transactions, deleted_listings=deleted_listings,
+        fee_percent=ESCROW_FEE_PERCENT
     )
 
 @app.route('/admin/verify-user/<int:user_id>', methods=['POST'])
